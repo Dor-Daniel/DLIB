@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../utils/ddefines.h"
+#include <stdio.h> // FILE*
 
 typedef struct json_parser_mem_allocator {
     void* (*allocate)(u64);
@@ -29,11 +30,12 @@ typedef struct json_obj_t {
 
 typedef struct json_parser_t json_parser_t;
 
-json_parser_t* json_parser_create(const char* json_cstring, json_parser_mem_allocator* allocator);
-void json_parser_destroy(json_parser_t* parser);
-bool json_parser_parse(json_parser_t* parser, json_obj_t* out_parse_obj);
-void json_print(json_obj_t root, u8 indentation);
-void json_destroy_obj(json_obj_t* obj, json_parser_mem_allocator* allocator);
+json_parser_t*  json_parser_create(const char* json_cstring, json_parser_mem_allocator* allocator);
+json_obj_t      json_parser_parse_file(FILE* f, json_parser_mem_allocator* allocator); 
+void            json_parser_destroy(json_parser_t* parser);
+void            json_parser_fprint(FILE* stream, json_obj_t root, u8 indentation);
+void            json_parser_destroy_obj(json_obj_t* obj, json_parser_mem_allocator* allocator);
+bool            json_parser_parse(json_parser_t* parser, json_obj_t* out_parse_obj);
 
 #if defined(JSON_PARSER_IMPLEMENTATION)
 
@@ -311,91 +313,92 @@ bool json_parser_parse(json_parser_t* parser, json_obj_t* out_parse_obj)
     return _json_parse_(&ptr , parser->mem_alloc, out_parse_obj);
 }
 
-void json_print(json_obj_t root, u8 spaces)
+void json_parser_fprint(FILE* stream, json_obj_t root, u8 spaces)
 {
+    if (!stream) return;
     bool print_types = false;
     
     switch (root.type)
     {
         case JSON_OBJ_TYPE_MAP:
         {
-            printf("%*s", spaces, ""); 
-            if (root.name == NULL) { printf("{\n"); }
-            else if (strcmp(root.name, "ROOT") == 0) printf("{\n"); else printf("\"%s\": {\n", root.name);
+            fprintf(stream, "%*s", spaces, ""); 
+            if (root.name == NULL) { fprintf(stream, "{\n"); }
+            else if (strcmp(root.name, "ROOT") == 0) fprintf(stream, "{\n"); else fprintf(stream, "\"%s\": {\n", root.name);
             json_obj_t * fc = root.first_child;
             while (fc != NULL)
             {
-                json_print(*fc, spaces + 2);
+                json_parser_fprint(stream, *fc, spaces + 2);
                 fc = fc->right_sibling;
-                if (fc) printf(",\n");
+                if (fc) fprintf(stream, ",\n");
             }
-            printf("\n");
-            printf("%*s", spaces, ""); 
-            printf("}"); 
-            if (print_types) printf(" // Json type is MAP");
+            fprintf(stream, "\n");
+            fprintf(stream, "%*s", spaces, ""); 
+            fprintf(stream, "}"); 
+            if (print_types) fprintf(stream, " // Json type is MAP");
             
         } break;
         case JSON_OBJ_TYPE_STRING:
         {
-            printf("%*s", spaces, ""); 
-            if (root.name == NULL) { printf("\"%s\"", (char*)root.value); }
-            else printf("\"%s\": \"%s\"", root.name, (char*)root.value);
-            if (print_types) printf(" // Json type is STRING");
+            fprintf(stream, "%*s", spaces, ""); 
+            if (root.name == NULL) { fprintf(stream, "\"%s\"", (char*)root.value); }
+            else fprintf(stream, "\"%s\": \"%s\"", root.name, (char*)root.value);
+            if (print_types) fprintf(stream, " // Json type is STRING");
         } break;
         case JSON_OBJ_TYPE_BOOL:
         {
-            printf("%*s", spaces, ""); 
-            if (root.name == NULL) printf("%s", (*(bool*)root.value) ? "true" : "false");
-            else printf("\"%s\": %s", root.name, (*(bool*)root.value) ? "true" : "false");
-            if (print_types) printf(" // Json type is BOOL");
+            fprintf(stream, "%*s", spaces, ""); 
+            if (root.name == NULL) fprintf(stream, "%s", (*(bool*)root.value) ? "true" : "false");
+            else fprintf(stream, "\"%s\": %s", root.name, (*(bool*)root.value) ? "true" : "false");
+            if (print_types) fprintf(stream, " // Json type is BOOL");
         } break;
         case JSON_OBJ_TYPE_ARRAY:
         {
-            printf("%*s", spaces, ""); 
-            if (root.name == NULL) printf("[\n");
-            else printf("%s: [\n", root.name);
+            fprintf(stream, "%*s", spaces, ""); 
+            if (root.name == NULL) fprintf(stream, "[\n");
+            else fprintf(stream, "%s: [\n", root.name);
             json_obj_t* obj = root.first_child;
             while (obj)
             {
-                json_print(*obj, spaces + 2);
+                json_parser_fprint(stream, *obj, spaces + 2);
                 if (obj->right_sibling)
                 {
-                    printf(",\n");
+                    fprintf(stream, ",\n");
                     obj = obj->right_sibling;
                 } 
                 else break;
             }
-            printf("\n%*s", spaces, ""); 
-            printf("]"); 
-            if (print_types) printf(" // Json type is ARRAY");
+            fprintf(stream, "\n%*s", spaces, ""); 
+            fprintf(stream, "]"); 
+            if (print_types) fprintf(stream, " // Json type is ARRAY");
         } break;
         case JSON_OBJ_TYPE_DOUBLE:
         {
-            printf("%*s", spaces, "");
-            if (root.name == NULL) printf("%f", (*(double*)root.value)); 
-            else printf("\"%s\": %f", root.name, (*(double*)root.value));
-            if (print_types) printf(" // Json type is DOUBLE");
+            fprintf(stream, "%*s", spaces, "");
+            if (root.name == NULL) fprintf(stream, "%f", (*(double*)root.value)); 
+            else fprintf(stream, "\"%s\": %f", root.name, (*(double*)root.value));
+            if (print_types) fprintf(stream, " // Json type is DOUBLE");
         } break;
         case JSON_OBJ_TYPE_INT:
         {
-            printf("%*s", spaces, ""); 
-            if (root.name == NULL) printf("%d", (*(int*)root.value));
-            else printf("\"%s\": %d", root.name, (*(int*)root.value));
-            if (print_types) printf(" // Json type is INT");
+            fprintf(stream, "%*s", spaces, ""); 
+            if (root.name == NULL) fprintf(stream, "%d", (*(int*)root.value));
+            else fprintf(stream, "\"%s\": %d", root.name, (*(int*)root.value));
+            if (print_types) fprintf(stream, " // Json type is INT");
         } break;
         case JSON_OBJ_TYPE_NULL:
         {
-            printf("%*s", spaces, ""); 
-            if (root.name == NULL) printf("null");
-            else printf("\"%s\": null", root.name);
-            if (print_types) printf(" // Json type is NULL");
+            fprintf(stream, "%*s", spaces, ""); 
+            if (root.name == NULL) fprintf(stream, "null");
+            else fprintf(stream, "\"%s\": null", root.name);
+            if (print_types) fprintf(stream, " // Json type is NULL");
         } break;
         default:
             assert("UNRECOGNIZED JSON TYPE!" && 0);
     }
 }
 
-void json_destroy_obj(json_obj_t* obj, json_parser_mem_allocator* mem_allocator)
+void json_parser_destroy_obj(json_obj_t* obj, json_parser_mem_allocator* mem_allocator)
 {
     if (obj == NULL) return;
     
@@ -403,14 +406,40 @@ void json_destroy_obj(json_obj_t* obj, json_parser_mem_allocator* mem_allocator)
 
     if (obj->first_child != NULL)
     {
-        json_destroy_obj(obj->first_child, mem_allocator);
+        json_parser_destroy_obj(obj->first_child, mem_allocator);
     }
     if (obj->right_sibling != NULL)
     {
-        json_destroy_obj(obj->right_sibling, mem_allocator);
+        json_parser_destroy_obj(obj->right_sibling, mem_allocator);
     } 
 
     allocator.free(obj);
+}
+
+json_obj_t json_parser_parse_file(FILE *f, json_parser_mem_allocator *_allocator)
+{
+    json_obj_t res = { 0 };
+
+    if (!f) return res;
+    json_parser_mem_allocator allocator = _allocator == NULL ? DEFAULT_JSON_PARSER_MEM_ALLOCATOR : * _allocator;
+
+    char * buff;
+    long sizeof_buff;
+
+    fseek(f, 0, SEEK_END);
+    sizeof_buff = ftell(f) + 1;
+    buff = allocator.allocate((u64)sizeof_buff);
+    fseek(f, 0, SEEK_SET);
+    u64 amount = fread(buff, sizeof(char), sizeof_buff, f);
+    buff[ amount ] = '\0';
+
+    json_parser_t * parser = json_parser_create(buff, _allocator);
+    json_parser_parse(parser, &res);
+    json_parser_destroy(parser);
+
+    allocator.free(buff);
+
+    return res;
 }
 
 #endif
