@@ -3,6 +3,5 @@ build
 *.exe
 include
 *.json
-bin
 .clangd
 test_folder

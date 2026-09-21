@@ -28,7 +28,7 @@ bool     dgraph_set_edge_data(dgraph_t dgraph, u32 inID, u32 outID, void* new_us
 bool     dgraph_set_edge_weight(dgraph_t dgraph, u32 inID, u32 outID, f32 weight);
 bool     dgraph_set_vertex_data(dgraph_t dgraph, u32 ID, void* new_user_data);
 
-#if defined(DGRAPH_IMPLEMENTATION) || 1
+#if defined(DGRAPH_IMPLEMENTATION)
 
 #include <stdlib.h>
 #include <assert.h>

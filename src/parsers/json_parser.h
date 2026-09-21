@@ -3,6 +3,16 @@
 #include "../utils/ddefines.h"
 #include <stdio.h> // FILE*
 
+/*
+
+    TODO: Make the code prettier!! Right noow looks bad.
+    TODO: json creator.
+    TODO: json reader. (after parsing...)
+    TODO: Add support for codepoints and wide chars.
+    TODO: Use dstring ??
+
+*/
+
 typedef struct json_parser_mem_allocator {
     void* (*allocate)(u64);
     void* (*reallocate)(void*, u64);
@@ -416,7 +426,7 @@ void json_parser_destroy_obj(json_obj_t* obj, json_parser_mem_allocator* mem_all
     allocator.free(obj);
 }
 
-json_obj_t json_parser_parse_file(FILE *f, json_parser_mem_allocator *_allocator)
+json_obj_t json_parser_parse_file(FILE *f, json_parser_mem_allocator *_allocator) // caller must call json_parser_destroy_obj() ..
 {
     json_obj_t res = { 0 };
 
@@ -429,11 +439,19 @@ json_obj_t json_parser_parse_file(FILE *f, json_parser_mem_allocator *_allocator
     fseek(f, 0, SEEK_END);
     sizeof_buff = ftell(f) + 1;
     buff = allocator.allocate((u64)sizeof_buff);
+    if (!buff) return res;
+
     fseek(f, 0, SEEK_SET);
     u64 amount = fread(buff, sizeof(char), sizeof_buff, f);
     buff[ amount ] = '\0';
 
     json_parser_t * parser = json_parser_create(buff, _allocator);
+    if (!parser)
+    {
+        allocator.free(buff);
+        return res;
+    }
+
     json_parser_parse(parser, &res);
     json_parser_destroy(parser);
 

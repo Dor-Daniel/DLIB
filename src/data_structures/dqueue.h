@@ -3,6 +3,7 @@
 #include "../utils/ddefines.h"
 
 typedef struct dqueue * dqueue_t;
+
 typedef struct dqueue_mem_allocator {
     void* (*allocate)(u64);
     void* (*reallocate)(void*, u64);
@@ -23,7 +24,7 @@ typedef struct dqueue {
     u32 capacity, length;
     u32 h, t, sizeof_element;
     dqueue_mem_allocator allocator;
-} * dqueue_t;
+} dqueue;
 
 #define DEFAULT_ALLOCATOR (dqueue_mem_allocator){ .allocate = malloc, .reallocate = realloc, .free = free }
 #define QUEUE_START(q) (u8*)((dqueue_t)q + 1)

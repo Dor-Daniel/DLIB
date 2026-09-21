@@ -39,7 +39,7 @@ void   darr_remove_at(darr_t* darray, u64 index); // O(darrlen(darray))
 void   darr_remove(darr_t* darray, const void * element); // O(darrlen(darray)) - compare byte by byte
 void   darr_push(darr_t* darray, const void * element); // O(1) amortized
 void   darr_pop(darr_t* darray, void* out_element); // O(1) amortized
-void   darr_sort(darr_t darray, bool (*compare)(void*, void*), darray_sort_type_enum sort_type); // qsort - O(darrlen(darray) * log(darralen(darray))) on avg
+void   darr_sort(darr_t darray, int (*compare)(const void*, const void*), darray_sort_type_enum sort_type); // qsort - O(darrlen(darray) * log(darralen(darray))) on avg
 u64    darrlen(const darr_t darray); // O(1)
 u64    darr_capacity(const darr_t darray); // O(1)
 
@@ -222,7 +222,7 @@ void darr_pop(darr_t*darray, void *out_element)
     // Dont forget to reasign darray to new reallocation :)
 }
 
-void darr_sort(darr_t darray, bool (*compare)(void *, void *), darray_sort_type_enum sort_type)
+void darr_sort(darr_t darray, int (*compare)(const void *, const void *), darray_sort_type_enum sort_type)
 {
     if (!darray || !compare) return;
     _darray_header* head = _head_from_block((darray));
