@@ -252,6 +252,8 @@ static bool build( void )
             }
         }
     }
+    
+    update_objects_file();
 
     if (success)
     {
@@ -277,7 +279,6 @@ static bool build( void )
         return false;
     }
 
-    update_objects_file();
 
     return true;
 }
