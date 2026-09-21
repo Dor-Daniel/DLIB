@@ -1,7 +1,7 @@
 # DLIB
 
 DLIB stands for Dor's Library.
-This is a personal C-Library Windows Platform support ONLY.
+This is a personal C-Library With Windows Platform support ONLY.
 
 The word "personal" means that i do not take any responsabilty for your usage but you are welcome to use how ever you like.
 
