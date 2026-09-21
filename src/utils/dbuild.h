@@ -64,8 +64,8 @@ int dbuild(const int argc, char* argv[]);
 #define DBUILD_MAX_INCLUDE_DIRECTORIES 32
 #endif
 
-#if !defined(DBUILD_MAX_DEPENDACIES_COUNT)
-#define DBUILD_MAX_DEPENDACIES_COUNT 64
+#if !defined(DBUILD_MAX_DEPENDENCIES_COUNT)
+#define DBUILD_MAX_DEPENDENCIES_COUNT 64
 #endif
 
 #define ASSURE_NOT_LAST(i, argc, msg) if (i + 1 >= argc) { printf("ERROR: Expected an argument and got none.\n"); printf(msg); exit(EXIT_FAILURE); }
@@ -118,8 +118,8 @@ typedef struct file_data {
     dbuild_file_type type;
     dstr_t file_path;
     SYSTEMTIME last_write_time;
-    dstr_t depedecies [ DBUILD_MAX_DEPENDACIES_COUNT ];
-    u32 dependecies_count;
+    dstr_t dependecies [ DBUILD_MAX_DEPENDENCIES_COUNT ];
+    u32 dependencies_count;
     bool should_compile;
 } file_data;
 
@@ -797,8 +797,8 @@ static bool scan_objects_file( void )
                 
                 while (p1)
                 {
-                    fd.depedecies[ fd.dependecies_count++ ] = dstr_create_from_chars(p1->value, p1->value_size_in_bytes, &allocator);
-                    if (fd.dependecies_count >= DBUILD_MAX_DEPENDACIES_COUNT) break;
+                    fd.dependecies[ fd.dependencies_count++ ] = dstr_create_from_chars(p1->value, p1->value_size_in_bytes, &allocator);
+                    if (fd.dependencies_count >= DBUILD_MAX_DEPENDENCIES_COUNT) break;
                     p1 = p1->right_sibling;
                 }
             }
@@ -837,9 +837,9 @@ static bool scan_objects_file( void )
             for (u32 i = 0; i < CTX.scanned_files_count; i++)
             {
                 file_data* fdi = CTX.scanned_files_data[ i ];
-                for (u32 j = 0; j < fdi->dependecies_count; j++)
+                for (u32 j = 0; j < fdi->dependencies_count; j++)
                 {
-                    if (STREQ(fdi->depedecies[ j ], fd.file_path))
+                    if (STREQ(fdi->dependecies[ j ], fd.file_path))
                     {
                         fdi->should_compile = true;
                     }
@@ -1003,13 +1003,13 @@ static void update_objects_file( void )
             CTX.scanned_files_data[ i ]->last_write_time.wMilliseconds,
             CTX.scanned_files_data[ i ]->last_write_time.wDayOfWeek
         );
-        for (u32 j = 0; j < CTX.scanned_files_data[ i ]->dependecies_count; j++)
+        for (u32 j = 0; j < CTX.scanned_files_data[ i ]->dependencies_count; j++)
         {
             fprintf(
                 f,
                 "\t\t\t\t\"%s\"%s\n",
-                CTX.scanned_files_data[ i ]->depedecies[ j ],
-                j + 1 < CTX.scanned_files_data[ i ]->dependecies_count ? "," : ""
+                CTX.scanned_files_data[ i ]->dependecies[ j ],
+                j + 1 < CTX.scanned_files_data[ i ]->dependencies_count ? "," : ""
             );
         }
         fprintf(
@@ -1325,7 +1325,7 @@ static void scan_source_directory( const char *directory )
             filedata->last_write_time = st;
             filedata->type = STR_END_WITH(file_path, ".c") ? DBUILD_FILE_TYPE_C_SOURCE_FILE : 
             STR_END_WITH(file_path, ".h") ? DBUILD_FILE_TYPE_C_HEADER_FILE : DBUILD_FILE_TYPE_UNKNOWN;
-            filedata->dependecies_count = 0;
+            filedata->dependencies_count = 0;
 
             {            
                 int j = 0;
@@ -1337,17 +1337,17 @@ static void scan_source_directory( const char *directory )
                     if (i > 2 && (*(output + i - 1) == 'c' || *(output + i - 1) == 'h'))
                     {
                         dstr_t dependacy = dstr_create_from_chars(output + j, i - j, &allocator);
-                        filedata->depedecies[ filedata->dependecies_count++ ] = path_beautifier(dependacy);
+                        filedata->dependecies[ filedata->dependencies_count++ ] = path_beautifier(dependacy);
                     }
                     j = ++i;
 
-                    if (filedata->dependecies_count == DBUILD_MAX_DEPENDACIES_COUNT)
+                    if (filedata->dependencies_count == DBUILD_MAX_DEPENDENCIES_COUNT)
                     {
                         fprintf(
                             stderr,
                             "File: %s has more then %u dependecies, You compile me with restriction of that amount of dependecies.\n"
                             "If you need that amount of dependacies consider compiling me again after increasing the max dependecies definition.", 
-                            file_path, DBUILD_MAX_DEPENDACIES_COUNT);
+                            file_path, DBUILD_MAX_DEPENDENCIES_COUNT);
                         exit( EXIT_FAILURE );
                     }
                 }
@@ -1738,7 +1738,7 @@ static void print_help( void )
         "  7.  DBUILD_SOURCE_DIRECTORY_DEFAULT: default is 'src',   this is the default source directory if it does not exists the builder will throw an error.""\n"
         "  8.  DBUILD_MAX_FORCED_FILES:         default is 32,      this is the total count of forced file compilation requested using '-ff' flag.""\n"
         "  9.  DBUILD_MAX_INCLUDE_DIRECTORIES:  default is 32,      this is the total count of include directories you are using, (requested by '-I' flag).""\n"
-        "  10. DBUILD_MAX_DEPENDACIES_COUNT:    default is 64,      this is the total count of include you can use in any source file (include recursive).""\n"
+        "  10. DBUILD_MAX_DEPENDENCIES_COUNT:    default is 64,      this is the total count of include you can use in any source file (include recursive).""\n"
         "\n"
     );
 }
