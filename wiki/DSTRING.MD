@@ -1,4 +1,4 @@
-# dstring
+# [dstring](../src/data_structures/dstring.h)
 
 A single-header C library for **dynamic, length-aware strings**, with a **string builder** and a **string reader** (a lightweight cursor for parsing).
 
