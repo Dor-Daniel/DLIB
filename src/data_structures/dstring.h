@@ -93,7 +93,7 @@ void   dstr_to_upper(dstr_t dstr); // Convert dstr lowercase to uppercase and al
 void   dstr_replace_char(dstr_t dstr, char to_replace, char replacement); // replace the first `char == to_replace` in dstr to `replacement`
 void   dstr_replace_chars(dstr_t dstr, char to_replace[], char replacement[], u64 length); // replace the first substring of dstr which equles to `to_replace` with `replacement`
 void   dstr_break_by_delim(dstr_t dstr, char delim, dstr_t* out_array, u64* out_array_length, const dstr_memory_allocator* allocator); // breaks dstr to out_array = { d1, d2, d3, .., dk } where dstr = d1 + delim + d2 + delim + ... + delim + dk. out_array can be NULL in order to check what is out_array_length, NOTE: caller must allocate and free out_array  
-void   dstr_break_by_delim_start_end(dstr_t dstr, char delim_start, char delim_end, char** out_array, const dstr_memory_allocator* allocator); // breaks dstr to out_array = { d2, d2, d3} where dstr = d1 + start_delim + d2 + end_delim + d3, NOTE: (out_array is dstr_t [3]), if di is empty then out_array[i] = NULL, if start_delim exists more then once we choose the first, and if end_delim exists more then once we choose the first that comes after delim_start.
+void   dstr_break_by_delim_start_end(dstr_t dstr, char delim_start, char delim_end, char** out_array, const dstr_memory_allocator* allocator); // breaks dstr to out_array = { d1, d2, d3} where dstr = d1 + start_delim + d2 + end_delim + d3, NOTE: (out_array is dstr_t [3]), if di is empty then out_array[i] = NULL, if start_delim exists more then once we choose the first, and if end_delim exists more then once we choose the first that comes after delim_start.
 
 dstr_builder_t  dstr_builder_create(u64 initial_capacity, const dstr_memory_allocator* allocator);
 dstr_t          dstr_builder_generate_dstr(dstr_builder_t builder, const dstr_memory_allocator* allocator);
@@ -167,6 +167,8 @@ dstr_t dstr_create_from_cstr(const char* cstr, const dstr_memory_allocator* allo
     if (!cstr) return NULL;
 
     u64 cstr_len = strlen(cstr);
+
+    if (!cstr_len) return NULL; // empty string
     
     u64* ptr = DSTRING_ALLOCATE(sizeof(u64) + cstr_len + sizeof(char), allocator);
     if (!ptr) return NULL;
@@ -183,6 +185,8 @@ dstr_t dstr_create_from_chars(const char chars[], u64 count, const dstr_memory_a
 {
     if (!chars) return NULL;
 
+    if (!count) return NULL; // empty string
+
     u64* ptr = DSTRING_ALLOCATE(sizeof(u64) + count + sizeof(char), allocator);
     if (!ptr) return NULL;
     ptr[ 0 ] = count;
@@ -197,6 +201,7 @@ dstr_t dstr_create_from_chars(const char chars[], u64 count, const dstr_memory_a
 dstr_t dstr_create_from_dstr(const dstr_t dstr, const dstr_memory_allocator* allocator)
 {
     if (!dstr) return NULL;
+    if (!dstrlen(dstr)) return NULL; // empty string - should not even be possible to have dstr with len 0 but in any case.
 
     u64* old_ptr = ((u64*)(dstr) - 1);
     u64* new_ptr = DSTRING_ALLOCATE(sizeof(u64) + old_ptr[0] + sizeof(char), allocator);
@@ -218,9 +223,14 @@ dstr_t dstr_create_from_cstr_format(const dstr_memory_allocator* allocator, cons
     va_start(args_copy, format);
 
     u64 str_len = vsnprintf(NULL, 0, format, args_copy);
+    if (!str_len)
+    {
+        va_end(args); va_end(args_copy); 
+        return NULL; // empty string
+    }
 
     u64* ptr = DSTRING_ALLOCATE(sizeof(u64) + str_len + sizeof(char), allocator);
-    if (!ptr) return NULL;
+    if (!ptr) { va_end(args); va_end(args_copy);  return NULL;}
     dstr_t dstr = (dstr_t)(ptr + 1);
     
     ptr[ 0 ] = str_len;
@@ -240,6 +250,9 @@ dstr_t dstr_create_from_dstrs_concat(const dstr_t first, const dstr_t second, co
 
     u64 first_len  = dstrlen(first);
     u64 second_len = dstrlen(second);
+
+    if (first_len + second_len == 0) return NULL; // empty string - should not be possible for two dstrings to be with length 0 but in any case
+
     u64* ptr = DSTRING_ALLOCATE(sizeof(u64) + first_len + second_len + sizeof(char), allocator);
     if (!ptr) return NULL;
     ptr[ 0 ] = first_len + second_len;
@@ -260,6 +273,9 @@ dstr_t dstr_create_from_cstrs_concat(const char *first, const char *second, cons
 
     u64 first_len  = strlen(first);
     u64 second_len = strlen(second);
+
+    if (first_len + second_len == 0) return NULL; // empty string 
+
     u64* ptr = DSTRING_ALLOCATE(sizeof(u64) + first_len + second_len + sizeof(char), allocator);
     if (!ptr) return NULL;
     ptr[ 0 ] = first_len + second_len;
@@ -277,6 +293,8 @@ dstr_t dstr_create_from_cstrs_concat(const char *first, const char *second, cons
 dstr_t dstr_create_from_chars_concat(const char first[], const char second[], u64 first_count, u64 second_count, const dstr_memory_allocator* allocator)
 {
     if (!first || !second) return NULL;
+
+    if (first_count + second_count == 0) return NULL; // empty string 
 
     u64* ptr = DSTRING_ALLOCATE(sizeof(u64) + first_count + second_count + sizeof(char), allocator);
     if (!ptr) return NULL;
@@ -373,11 +391,10 @@ dstr_t dstr_create_substring_by_delim(const dstr_t dstr, const char delim, bool 
     }
     else
     {
-        u64 index = dstr_len - 1;
-        ptr = dstr + dstr_len - 1;
-        while (*ptr-- != delim && index > 0) index--;
+        u64 i = dstr_len;
+        while (i > 0 && dstr[i - 1] != delim) i--;
 
-        return dstr_create_from_chars(dstr + index + 1, dstr_len - index, allocator);
+        return dstr_create_from_chars(dstr + i, dstr_len - i, allocator);
     }
 }
 
@@ -731,18 +748,15 @@ void dstr_break_by_delim(dstr_t dstr, char delim, dstr_t *out_array, u64* out_ar
             }
             last = p + 1; // ignores delim
         }
-        else if ( p + 1 < dstr + dstr_len )
+    }
+    if (last < dstr + dstr_len)
+    {
+        u64 len = (u64)(dstr + dstr_len - last);
+        if (out_array != NULL) 
         {
-            u64 len = (u64)(p - last);
-            if (len > 0) // more then one delims in a raw - ignore
-            {
-                if (out_array != NULL) 
-                {
-                    out_array[ count ] = dstr_create_from_chars(last, len , allocator);
-                } 
-                count++;
-            }
-        }
+            out_array[ count ] = dstr_create_from_chars(last, len , allocator);
+        } 
+        count++;
     }
     if (out_array_length != NULL) *out_array_length = count;
 }
@@ -756,7 +770,7 @@ void dstr_break_by_delim_start_end(dstr_t dstr, char delim_start, char delim_end
     const char* end = NULL;
     for (const char* p = dstr; p < dstr + dstr_len; p++)
     {
-        if (start == NULL && *p == delim_start && p < dstr + dstr_len - 1 && p > dstr)
+        if (start == NULL && *p == delim_start)
         {
             start = p + 1; // ignores delim
         }
@@ -767,12 +781,21 @@ void dstr_break_by_delim_start_end(dstr_t dstr, char delim_start, char delim_end
         }
     }
 
-    if (start == NULL || end == NULL) return;
+    if (start == NULL || end == NULL)
+    {
+        if (out_array)
+        {
+            out_array[ 0 ] = NULL;
+            out_array[ 1 ] = NULL;
+            out_array[ 2 ] = NULL;
+        }
+        return;
+    }
 
     if (out_array != NULL)
     {
-        u64 start_len = (u64)(start - dstr) - 2;
-        if (start > dstr + 2)
+        u64 start_len = (u64)(start - dstr) - 1;
+        if (start > dstr + 1)
         {
             out_array[ 0 ] = dstr_create_from_chars(dstr, start_len, allocator);
         }
@@ -836,7 +859,7 @@ dstr_t dstr_builder_chop_prefix_by_delim(dstr_builder_t builder, const char deli
 
     dstr_t prefix = dstr_create_from_chars(builder->chars, delim_index, allocator);
 
-    dstr_builder_remove_prefix(builder, delim_index);
+    dstr_builder_remove_prefix(builder, delim_index + 1); // include delim as removed
 
     return prefix;
 }
@@ -870,10 +893,11 @@ void dstr_builder_append_dstr(dstr_builder_t builder, dstr_t dstr)
     u64 dstr_len = dstrlen(dstr);
     if (builder->capacity <= builder->count + dstr_len)
     {
-        builder->capacity += builder->count + dstr_len;
-        void* block = builder->allocator.reallocate(builder->chars, builder->capacity); 
+        u64 new_capacity = builder->capacity + builder->count + dstr_len;
+        void* block = builder->allocator.reallocate(builder->chars, new_capacity); 
         if (!block) return; // Silent Error.
         builder->chars = block;
+        builder->capacity = new_capacity;
     }
 
     memcpy(builder->chars + builder->count, dstr, dstr_len);
@@ -887,10 +911,11 @@ void dstr_builder_append_cstr(dstr_builder_t builder, const char *cstring)
     u64 dstr_len = strlen(cstring);
     if (builder->capacity <= builder->count + dstr_len)
     {
-        builder->capacity += builder->count + dstr_len;
-        void* block = builder->allocator.reallocate(builder->chars, builder->capacity); 
+        u64 new_capacity = builder->capacity + builder->count + dstr_len;
+        void* block = builder->allocator.reallocate(builder->chars, new_capacity); 
         if (!block) return; // Silence Error
         builder->chars = block;
+        builder->capacity = new_capacity;
     }
     
     memcpy(builder->chars + builder->count, cstring, dstr_len);
@@ -910,10 +935,13 @@ void dstr_builder_append_cstr_format(dstr_builder_t builder, const char *format,
 
     if (builder->capacity <= builder->count + str_len)
     {
-        while (builder->capacity <= builder->count + str_len) builder->capacity = builder->capacity > 0 ? builder->capacity * 2 : (1ULL << 5);
-        void* block = builder->allocator.reallocate(builder->chars, builder->capacity);
-        if (!block) return;
+        u64 new_capacity = builder->capacity;
+        while (new_capacity <= builder->count + str_len) new_capacity = new_capacity > 0 ? new_capacity * 2 : (1ULL << 5);
+        void* block = builder->allocator.reallocate(builder->chars, new_capacity);
+        
+        if (!block) { va_end(args); va_end(args_copy); return; }
         builder->chars = block;
+        builder->capacity = new_capacity;
 
     }
     
@@ -931,10 +959,11 @@ void dstr_builder_append_chars(dstr_builder_t builder, const char chars[], u64 c
 
     if (builder->capacity <= builder->count + count)
     {
-        builder->capacity += builder->count + count;
-        void * block = builder->allocator.reallocate(builder->chars, builder->capacity); 
+        u64 new_capacity = builder->capacity + builder->count + count;
+        void * block = builder->allocator.reallocate(builder->chars, new_capacity); 
         if (!block) return; // Silence Error
         builder->chars = block;
+        builder->capacity = new_capacity;
     }
     
     memcpy(builder->chars + builder->count, chars, count);
@@ -947,10 +976,11 @@ void dstr_builder_append_char(dstr_builder_t builder, const char c)
 
     if (builder->capacity <= builder->count + 1)
     {
-        builder->capacity = builder->capacity > 0 ? builder->capacity * 2 : (1ULL << 5);
-        void* block = builder->allocator.reallocate(builder->chars, builder->capacity); 
+        u64 new_cpapcity  = builder->capacity > 0 ? builder->capacity * 2 : (1ULL << 5);
+        void* block = builder->allocator.reallocate(builder->chars, new_cpapcity); 
         if (!block) return; // Silence Error
         builder->chars = block;
+        builder->capacity = new_cpapcity;
     }
     
     builder->chars[builder->count++] = c;
@@ -996,10 +1026,11 @@ u64 dstr_builder_get_chars_count(dstr_builder_t builder)
 void dstr_builder_reserve(dstr_builder_t builder, u64 amount)
 {
     if (!builder) return;
-    builder->capacity += amount;
-    void* block = builder->allocator.reallocate(builder->chars, builder->capacity);
+    u64 new_cpapcity = builder->capacity + amount;
+    void* block = builder->allocator.reallocate(builder->chars, new_cpapcity);
     if (!block) return; // Silence Error
     builder->chars = block;
+    builder->capacity = new_cpapcity;
 }
 
 void dstr_builder_remove_at_char(dstr_builder_t builder, u64 index)
