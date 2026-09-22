@@ -1,7 +1,4 @@
-# dbuild.h
-
-**You can Find The source Code [here](../src/utils/dbuild.h)**
-
+# [dbuild.h](../src/utils/dbuild.h)
  
 A small, single-header C build tool. It compiles the files in your source directory, links them into a debug, release, or shared-library target, and can save your settings so the next build is a single short command.
  
