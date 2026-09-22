@@ -43,28 +43,39 @@ typedef struct dstr_memory_allocator
     TODO: Expand builder & Reader functionalities.
     TODO: Add support for wide chars and codepoints.    
     TODO: Add definitions (macros) for using those functions without providing an allocator for simplicity.
+    
+        ==============
+        Example 
         Implementation should look like...
-
-        #define DSTRING_EXPAND(x) x
-        #define DSTRING_SELECT_MACRO(args, macro2, macro1, ...) macro1
-
         ==============
-            Example 
-        ==============
-        dstr_t _dstr_create_from_cstr(const char* cstr, dstr_memory_allocator* allocator); // Allocates dstr_t with size `strlen(cstr)` - from null-terminated cstr
-        #define _1_dstr_create_from_cstr(cstr) _dstring___create__from_cstring(cstr, NULL)
-        #define _2_dstr_create_from_cstr(cstr, allocator) _dstring___create__from_cstring(cstr, allocator)
-        #define dstr_create_from_cstr(...)   \
-            EXPAND(                                   \
-                DSTRING_SELECT_MACRO(                 \
-                    __VA_ARGS__,                      \
-                    _2_dstr_create_from_cstr,\
-                    _1_dstr_create_from_cstr \
-                    )                                 \
-                (__VA_ARGS__)
+        #if !defined(DSTRING_NO_FUNCTIONS_WRAPPERS)
+
+            #define DSTR_EXPAND(x) x
+            #define DSTR_SELECT_MACRO(args, m2, m1, ...) m1
+
+            #define DSTR_CREATE_FROM_CSTR_NAME _dstr_create_from_cstr
+
+            #define _dtr_from_cstr_2(cstr, allocator) DSTR_CREATE_FROM_CSTR_NAME(cstr, allocator)
+            #define _dtr_from_cstr_1(cstr) DSTR_CREATE_FROM_CSTR_NAME(cstr, NULL)
+            #define dstr_create_from_cstr(...) DSTR_EXPAND(DSTR_SELECT_MACRO(__VA_ARGS__, _dtr_from_cstr_2, _dtr_from_cstr_1))(__VA_ARGS__)
+            ...
+        #else
+
+            #define DSTR_CREATE_FROM_CSTR_NAME dstr_create_from_cstr
+            ...
+
+        #endif // !defined(DSTRING_NO_FUNCTIONS_WRAPPERS)
+
+            dstr_t DSTR_CREATE_FROM_CSTR_NAME(const char* cstr, const dstr_memory_allocator* allocator);
+            ...
+
+        #if defined(DSTRING_IMPLEMENTATION)
+
+            dstr_t DSTR_CREATE_FROM_CSTR_NAME(const char* cstr, const dstr_memory_allocator* allocator){ ... } 
+            ...
+        #endif // defined(DSTRING_IMPLEMENTATION)
         ===============================================
 */
-
 
 dstr_t dstr_create_from_cstr(const char* cstr, const dstr_memory_allocator* allocator); // Allocates dstr_t with size `strlen(cstr)` - from null-terminated cstr
 dstr_t dstr_create_from_chars(const char chars[], u64 count, const dstr_memory_allocator* allocator); // Allocates dstr_t with size `count` - from char[] chars
@@ -105,6 +116,10 @@ void            dstr_builder_append_cstr(dstr_builder_t builder, const char* cst
 void            dstr_builder_append_cstr_format(dstr_builder_t builder, const char* format, ...);
 void            dstr_builder_append_chars(dstr_builder_t builder, const char chars[], u64 count);
 void            dstr_builder_append_char(dstr_builder_t builder, const char c);
+void            dstr_builder_append_dstrs(dstr_builder_t builder, const dstr_t* dstrs, u32 count);
+void            dstr_builder_append_cstrs(dstr_builder_t builder, const char** cstrs, u32 count);
+void            dstr_builder_append_dstrs_sepreate(dstr_builder_t builder, const dstr_t* dstrs, u32 count, const char seperator);
+void            dstr_builder_append_cstrs_sepreate(dstr_builder_t builder, const char** cstrs, u32 count, const char seperator);
 void            dstr_builder_replace_at_dstr(dstr_builder_t builder, dstr_t replacement ,u64 start_index);
 void            dstr_builder_replace_at_cstr(dstr_builder_t builder, const char* replacement ,u64 start_index);
 void            dstr_builder_replace_at_chars(dstr_builder_t builder, const char replacement[] , u64 count, u64 start_index);
@@ -115,6 +130,7 @@ void            dstr_builder_remove_all_char(dstr_builder_t builder, const char 
 void            dstr_builder_replace_all_char(dstr_builder_t builder, const char to_replace, const char replacement);
 void            dstr_builder_remove_prefix(dstr_builder_t builder, u64 prefix_len);
 void            dstr_builder_remove_suffix(dstr_builder_t builder, u64 suffix_len);
+void            dstr_builder_clear(dstr_builder_t builder);
 char*           dstr_builder_get_chars(dstr_builder_t builder);
 u64             dstr_builder_get_capacity(dstr_builder_t builder);
 u64             dstr_builder_get_chars_count(dstr_builder_t builder);
@@ -123,16 +139,24 @@ dstr_reader_t  dstr_reader_create(dstr_t dstr, const dstr_memory_allocator* allo
 void           dstr_reader_destroy(dstr_reader_t reader);
 void           dstr_reader_skip_spaces(dstr_reader_t reader);
 bool           dstr_reader_check_and_skip_char(dstr_reader_t reader, char c);
-bool           dstr_reader_check_and_skip_chars(dstr_reader_t reader, char *chars, u32 count);
+bool           dstr_reader_check_and_skip_dstr(dstr_reader_t reader, const dstr_t dstr);
+bool           dstr_reader_check_and_skip_cstr(dstr_reader_t reader, const char *cstr);
+bool           dstr_reader_check_and_skip_chars(dstr_reader_t reader, const char *chars, u32 count);
 dstr_t         dstr_reader_read_and_skip_chars(dstr_reader_t reader, u32 count);
 dstr_t         dstr_reader_read_and_skip_chars_to_delim(dstr_reader_t reader, char delim);
 void           dstr_reader_skip_to_next_line(dstr_reader_t reader);
+void           dstr_reader_go_back(dstr_reader_t reader, u32 amount);
 bool           dstr_reader_find_first_char(dstr_reader_t reader, char c, u32* out_len);
 bool           dstr_reader_is_finish(dstr_reader_t reader);
+bool           dstr_reader_read_and_skip_i32(dstr_reader_t reader, i32* out);
+bool           dstr_reader_read_and_skip_i64(dstr_reader_t reader, i64* out);
+bool           dstr_reader_read_and_skip_f32(dstr_reader_t reader, f32* out);
+bool           dstr_reader_read_and_skip_f64(dstr_reader_t reader, f64* out);
+bool           dstr_reader_read_and_skip_bool(dstr_reader_t reader, bool* out);
 
-#define dstrlen(dstr) (*(((u64*)(dstr)) - 1))
+#define dstrlen(dstr) (*(((const u64*)(dstr)) - 1))
        
-#if defined(DSTRING_IMPLEMENTATION)
+#if defined(DSTRING_IMPLEMENTATION) || 1
 
 #include <stdarg.h>
 #include <string.h>
@@ -986,6 +1010,60 @@ void dstr_builder_append_char(dstr_builder_t builder, const char c)
     builder->chars[builder->count++] = c;
 }
 
+void dstr_builder_append_dstrs(dstr_builder_t builder, const dstr_t *dstrs, u32 count)
+{
+    if (!builder || !dstrs || !count) return;
+
+    for (u32 i = 0; i < count; i++)
+    {
+        if (dstrs[ i ]) dstr_builder_append_dstr(builder, dstrs[ i ]);
+    }
+}
+
+void dstr_builder_append_cstrs(dstr_builder_t builder, const char **cstrs, u32 count)
+{
+    if (!builder || !cstrs || !count) return;
+
+    for (u32 i = 0; i < count; i++)
+    {
+        if (cstrs[ i ]) dstr_builder_append_cstr(builder, cstrs[ i ]);
+    }
+}
+
+void dstr_builder_append_dstrs_sepreate(dstr_builder_t builder, const dstr_t *dstrs, u32 count, const char seperator)
+{
+    if (!builder || !dstrs || !count) return;
+
+    for (u32 i = 0; i < count; i++)
+    {
+        if (dstrs[ i ]) 
+        { 
+            dstr_builder_append_dstr(builder, dstrs[ i ]);
+            if (i + 1 < count)
+            {
+                dstr_builder_append_char(builder, seperator);
+            }
+        }
+    }
+}
+
+void dstr_builder_append_cstrs_sepreate(dstr_builder_t builder, const char **cstrs, u32 count, const char seperator)
+{
+    if (!builder || !cstrs || !count) return;
+
+    for (u32 i = 0; i < count; i++)
+    {
+        if (cstrs[ i ]) 
+        { 
+            dstr_builder_append_cstr(builder, cstrs[ i ]);
+            if (i + 1 < count)
+            {
+                dstr_builder_append_char(builder, seperator);
+            }
+        }
+    }
+}
+
 void dstr_builder_replace_at_dstr(dstr_builder_t builder, dstr_t replacement, u64 start_index)
 {
     if (!builder || !replacement) return;
@@ -1116,6 +1194,14 @@ void dstr_builder_remove_suffix(dstr_builder_t builder, u64 suffix_len)
     builder->count -= suffix_len;
 }
 
+void dstr_builder_clear(dstr_builder_t builder)
+{
+    if (builder)
+    {
+        builder->count = 0;
+    }
+}
+
 char *dstr_builder_get_chars(dstr_builder_t builder)
 {
     if (!builder) return NULL;
@@ -1148,13 +1234,13 @@ void dstr_reader_skip_spaces(dstr_reader_t reader)
 {
     if (reader && reader->curr)
     {
-        while (isspace(reader->curr[0]) && reader->curr != reader->end) reader->curr++;
+        while (reader->curr < reader->end && isspace(reader->curr[0])) reader->curr++;
     }
 }
 
 bool dstr_reader_check_and_skip_char(dstr_reader_t reader, char c)
 {
-    if (reader && reader->curr && reader->curr != reader->end && reader->curr[0] == c) 
+    if (reader && reader->curr && reader->curr < reader->end && reader->curr[0] == c) 
     { 
         reader->curr++;
         return true;
@@ -1162,7 +1248,41 @@ bool dstr_reader_check_and_skip_char(dstr_reader_t reader, char c)
     return false;
 }
 
-bool dstr_reader_check_and_skip_chars(dstr_reader_t reader, char *chars, u32 count)
+inline bool dstr_reader_check_and_skip_dstr(dstr_reader_t reader, const dstr_t dstr)
+{
+    if (reader && reader->curr && dstr)
+    {
+        u64 dstr_len = dstrlen(dstr);
+        if (!dstr_len || reader->curr + dstr_len > reader->end) return false;
+        
+        for (u64 i = 0ULL; i < dstr_len; i++)
+        {
+            if (reader->curr[ i ] != dstr[ i ]) return false;
+        }
+        reader->curr += dstr_len;
+        return true;
+    } 
+    return false;
+}
+
+inline bool dstr_reader_check_and_skip_cstr(dstr_reader_t reader, const char *cstr)
+{
+    if (reader && reader->curr && cstr)
+    {
+        u64 cstr_len = strlen(cstr);
+        if (!cstr_len || reader->curr + cstr_len > reader->end) return false;
+        
+        for (u64 i = 0ULL; i < cstr_len; i++)
+        {
+            if (reader->curr[ i ] != cstr[ i ]) return false;
+        }
+        reader->curr += cstr_len;
+        return true;
+    } 
+    return false;
+}
+
+bool dstr_reader_check_and_skip_chars(dstr_reader_t reader, const char *chars, u32 count)
 {
     if (reader && reader->curr && chars && reader->curr + count <= reader->end)
     {
@@ -1218,6 +1338,14 @@ void dstr_reader_skip_to_next_line(dstr_reader_t reader)
     }
 }
 
+void dstr_reader_go_back(dstr_reader_t reader, u32 amount)
+{
+    if (reader && reader->curr)
+    {
+        reader->curr = (u32)(reader->curr - reader->data) >= amount ? reader->curr - amount : reader->data;
+    }
+}
+
 bool dstr_reader_find_first_char(dstr_reader_t reader, char c, u32* out_len)
 {
     if (reader && reader->curr)
@@ -1243,5 +1371,98 @@ bool dstr_reader_is_finish(dstr_reader_t reader)
     return true;
 }
 
+bool dstr_reader_read_and_skip_i32(dstr_reader_t reader, i32 *out)
+{
+    if (reader && reader->curr && reader->curr < reader->end)
+    {
+        char* end = reader->curr;
+        errno = 0;
+        long outcome = strtol(reader->curr, &end, 0);
+        if (errno != 0 || end == reader->curr) return false;
+
+        if (out) *out = (i32)outcome;
+        reader->curr = end;
+        return true;
+    }
+    return false;
+}
+
+bool dstr_reader_read_and_skip_i64(dstr_reader_t reader, i64 *out)
+{
+    if (reader && reader->curr && reader->curr < reader->end)
+    {
+        char* end = reader->curr;
+        errno = 0;
+        long long outcome = strtoll(reader->curr, &end, 0);
+        if (errno != 0 || end == reader->curr) return false;
+
+        if (out) *out = (i64)outcome;
+        reader->curr = end;
+        return true;
+    }
+    return false;
+}
+
+bool dstr_reader_read_and_skip_f32(dstr_reader_t reader, f32 *out)
+{
+    if (reader && reader->curr && reader->curr < reader->end)
+    {
+        char* end = reader->curr;
+        errno = 0;
+        f32 outcome = strtof(reader->curr, &end);
+        if (errno != 0 || end == reader->curr) return false;
+
+        if (out) *out = (f32)outcome;
+        reader->curr = end;
+        return true;
+    }
+    return false;
+}
+
+bool dstr_reader_read_and_skip_f64(dstr_reader_t reader, f64 *out)
+{
+    if (reader && reader->curr && reader->curr < reader->end)
+    {
+        char* end = reader->curr;
+        errno = 0;
+        f64 outcome = strtod(reader->curr, &end);
+        if (errno != 0 || end == reader->curr) return false;
+
+        if (out) *out = (f64)outcome;
+        reader->curr = end;
+        return true;
+    }
+    return false;
+}
+
+#define DSTR_INSENSITIVE_CHARCMP(c1, c2) ((c1) == (c2)) || (((c1) - (c2)) == 'A' - 'a') || (((c1) - (c2)) == 'a' - 'A')
+
+bool dstr_reader_read_and_skip_bool(dstr_reader_t reader, bool *out)
+{
+    if (reader && reader->curr && reader->curr < reader->end)
+    {
+        char* p = reader->curr;
+        while (p < reader->end && isspace(*p++));
+        char* start = p;
+        while (p < reader->end && !isspace(*p++));
+        char* end = p;
+        u32 len = (u32)(end - start);
+        char word[ 5 ] = { 0 };
+        if (len != 5 && len != 4) return false;
+        else if (len == 4) memcpy(word, "true", 4); 
+        else memcpy(word, "false", 4); 
+        
+        for (u32 i = 0; i < len; i++)
+        {
+            bool identical = DSTR_INSENSITIVE_CHARCMP(word[ i ], start[ i ]);
+            if (!identical) return false;
+        }
+
+        if (out) *out = (len == 4);
+        reader->curr += len;
+        return true;
+    }
+    return false;
+}
 
 #endif // defined(DSTRING_IMPLEMENTATION)

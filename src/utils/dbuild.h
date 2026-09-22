@@ -1,5 +1,18 @@
 #pragma once
 
+/*
+    TODO: Add threads support for now it doesnt use them.
+    TODO: remove the include dependecies it kind of destroying the fun of single-header-lib
+    TODO: scan_source_files takes time and space... the pipe opens on any file and the include string generates at each directory.
+    
+    
+    Known bugs:
+    BUG: very slow 
+    
+*/
+
+
+
 int dbuild(const int argc, char* argv[]);
 
 #if defined(DBUILD_IMPLEMENTATION)
@@ -76,7 +89,8 @@ int dbuild(const int argc, char* argv[]);
 
 #define BYTE_STR "%c%c%c%c%c%c%c%c"
 
-#define BYTE_FMT(b) (((u8)(b)) & (1U << 7)) ? '1' : '0', \
+#define BYTE_FMT(b) \
+    (((u8)(b)) & (1U << 7)) ? '1' : '0', \
     (((u8)(b)) & (1U << 6)) ? '1' : '0', \
     (((u8)(b)) & (1U << 5)) ? '1' : '0', \
     (((u8)(b)) & (1U << 4)) ? '1' : '0', \
@@ -612,7 +626,7 @@ static void save_configuration_file( void )
     {
         fprintf(
             config_file,
-            "       \"%s\"%s",
+            "\t\t\"%s\"%s\n",
             CTX.compiler_extra_args[ i ], i + 1 < CTX.compiler_extra_args_count ? "," : ""
         );
     }
@@ -633,7 +647,7 @@ static void save_configuration_file( void )
     {
         fprintf(
             config_file,
-            "       \"%s\"%s",
+            "\t\t\"%s\"%s\n",
             CTX.linker_extra_args[ i ], i + 1 < CTX.linker_extra_args_count ? "," : ""
         );
     }
@@ -654,7 +668,7 @@ static void save_configuration_file( void )
     {
         fprintf(
             config_file,
-            "       \"%s\"%s",
+            "\t\t\"%s\"%s\n",
             CTX.include_dirs[ i ], i + 1 < CTX.include_dirs_count ? "," : ""
         );
     }
@@ -675,7 +689,7 @@ static void save_configuration_file( void )
     {
         fprintf(
             config_file,
-            "       \"%s\"%s",
+            "\t\t\"%s\"%s\n",
             CTX.include_libs[ i ], i + 1 < CTX.include_libs_count ? "," : ""
         );
     }
@@ -696,7 +710,7 @@ static void save_configuration_file( void )
     {
         fprintf(
             config_file,
-            "       \"%s\"%s",
+            "\t\t\"%s\"%s\n",
             CTX.include_libs_dir[ i ], i + 1 < CTX.include_libs_dir_count ? "," : ""
         );
     }
@@ -792,7 +806,7 @@ static bool scan_objects_file( void )
                 
                 fd.last_write_time = st;
             }
-            else if (STREQ(p->name, "dependecies"))
+            else if (STREQ(p->name, "dependencies"))
             {
                 json_obj_t * p1 = p->first_child;
                 
@@ -824,9 +838,9 @@ static bool scan_objects_file( void )
                 )
                 {
                     is_changed = true;
-                    fdi->should_compile = true;
                 }
                 else 
+                    fdi->should_compile = is_file_forced(fd.file_path);
                     is_changed = false;
 
                 break;
@@ -990,7 +1004,7 @@ static void update_objects_file( void )
             "\t\t\t\t\"millisecond\": %d,\n"
             "\t\t\t\t\"day_of_week\": %d\n"
             "\t\t\t},\n"
-            "\t\t\t\"dependecies\": [\n"
+            "\t\t\t\"dependencies\": [\n"
             ,
             CTX.scanned_files_data[ i ]->type == DBUILD_FILE_TYPE_C_HEADER_FILE ? "C-Header-File" :
             CTX.scanned_files_data[ i ]->type == DBUILD_FILE_TYPE_C_SOURCE_FILE ? "C-Source-File" : "Unknown",
@@ -1263,6 +1277,19 @@ static void scan_source_directory( const char *directory )
 
     if (CTX.should_print_info) printf("Scanning Directory: '%s'.\n", dir);
 
+    char inc_dirs [ MAX_PATH * DBUILD_MAX_INCLUDE_DIRECTORIES ] = { 0 };
+    u32 idx = 0;
+    for (u32 i = 0; i < CTX.include_dirs_count; i++)
+    {
+        inc_dirs[ idx++ ] = '-';
+        inc_dirs[ idx++ ] = 'I';
+        u32 len = dstrlen(CTX.include_dirs[ i ]);
+        memcpy(inc_dirs + idx, CTX.include_dirs[ i ], len);
+        idx += len;
+        inc_dirs[ idx++ ] = ' ';
+    }
+    inc_dirs[ idx++ ] = '\0';
+
     do
     {
         if (STREQ(fd.cFileName, ".") || STREQ(fd.cFileName, "..")) continue;
@@ -1298,8 +1325,8 @@ static void scan_source_directory( const char *directory )
 
             STR_REPLACE(file_path, '\\', '/');
 
-            char cmd [ MAX_PATH + 10 ] = { 0 };
-            sprintf(cmd, "gcc -MM %s", file_path); // TODO: add includes here...
+            char cmd [ MAX_PATH * (DBUILD_MAX_INCLUDE_DIRECTORIES + 1) + 10 ] = { 0 };
+            sprintf(cmd, "gcc -MM %s %s", file_path, inc_dirs); 
 
             char buff [ KB(1) ];
             buff[ KB(1) - 1 ] = '\0';
@@ -1354,7 +1381,7 @@ static void scan_source_directory( const char *directory )
                 }
             }
 
-            filedata->should_compile = is_file_forced(file_path);
+            filedata->should_compile = true;
 
             CTX.scanned_files_data[ CTX.scanned_files_count++ ] = filedata;
 
