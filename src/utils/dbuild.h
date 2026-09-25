@@ -344,7 +344,6 @@ static bool build( void )
             if (!res || exit_code != EXIT_SUCCESS)
             {
                 all_compiled_successfully = false;
-                if (CTX.should_print_info) fprintf(stdout, "Source: %s Failed to compile.\n", fd.file_path);
             }
             CloseHandle(hdls[ i ]);
             CloseHandle(pis[ i ].hThread);
@@ -356,7 +355,7 @@ static bool build( void )
                 stderr,
                 "Something went wrong compiling your sources.\n"
             );
-            return EXIT_FAILURE;
+            return false;
         }
 
         if (CTX.should_print_info) fprintf(stdout, "Comilation stage ended successfully.\n");
@@ -442,7 +441,12 @@ int dbuild( const int argc, char *argv[] )
     {
         if (!load_conigurations())
         {
-            fprintf(stderr, "You asked me to load & use config that you saved but you have not saved any configs for the debug target before.");
+            fprintf(
+                stderr, 
+                "You asked me to load & use config that you saved before but you have not saved any configs for the %s target before.",
+                CTX.build_target == DBUILD_TARGET_DEBUG ? "debug" :
+                CTX.build_target == DBUILD_TARGET_RELEASE ? "release" : "shared"
+            );
             return EXIT_FAILURE;
         }
         if (CTX.should_print_info) fprintf(stdout, "Loaded configurations successfully.\n"); 
@@ -1833,7 +1837,7 @@ static void create_template()
             "            \"defines\": [""\n"
             "                \"_DEBUG\",""\n"
             "                \"UNICODE\",""\n"
-            "                \"_UNICODE\",""\n"
+            "                \"_UNICODE\"""\n"
             "            ],""\n"
             "            \"windowsSdkVersion\": \"10.0.26100.0\",""\n"
             "            \"compilerPath\": \"%s\",""\n"
