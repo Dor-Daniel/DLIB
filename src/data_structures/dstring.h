@@ -156,7 +156,7 @@ bool           dstr_reader_read_and_skip_bool(dstr_reader_t reader, bool* out);
 
 #define dstrlen(dstr) (*(((const u64*)(dstr)) - 1))
        
-#if defined(DSTRING_IMPLEMENTATION) || 1
+#if defined(DSTRING_IMPLEMENTATION)
 
 #include <stdarg.h>
 #include <string.h>
