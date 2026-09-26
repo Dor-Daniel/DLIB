@@ -92,13 +92,16 @@ typedef int (*darr_compare)(const void*, const void*);
 #define DARRAY_DEFAULT_CAPACITY 64UL
 #endif
 
-#define expand(x) x
-#define choose(args, m2, m1, ...) m1
+#define _darr_expand(x) x
+#define _darr_choose(args, m2, m1, ...) m1
 #define _darr_create_null(type, backend_type) darr_create(DARRAY_DEFAULT_CAPACITY, sizeof(type), backend_type, NULL); 
 #define _darr_create_allocator(type, backend_type, allocator) darr_create(DARRAY_DEFAULT_CAPACITY, sizeof(type), backend_type, allocator); 
-#define darr_new(type, ...) \
-    expand(choose(__VA_ARGS__, _darr_create_allocator, _darr_create_null))(type, __VA_ARGS__)
-
+#define cdarr_create(type, ...) \
+    _darr_expand(_darr_choose(__VA_ARGS__, _darr_create_allocator, _darr_create_null))(type, __VA_ARGS__)
+#define cdarr_push_at(darr, item, index) darr_push_at((void**)&darr, item, index)
+#define cdarr_pop_at(darr, item, index) darr_pop_at((void**)&darr, item, index)
+#define cdarr_push_back(darr, item) darr_push_back((void**)&darr, item)
+#define cdarr_pop_back(darr, item) darr_pop_back((void**)&darr, item)
 #endif
 
 void * darr_create(u32 capacity, u32 item_size, darr_type_e type , const dallocator_t allocator);
