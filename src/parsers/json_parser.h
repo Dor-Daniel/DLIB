@@ -13,12 +13,6 @@
 
 */
 
-typedef struct json_parser_mem_allocator {
-    void* (*allocate)(u64);
-    void* (*reallocate)(void*, u64);
-    void  (*free)(void*);
-} json_parser_mem_allocator;
-
 typedef enum json_obj_type_e {
     JSON_OBJ_TYPE_ARRAY,
     JSON_OBJ_TYPE_MAP,
@@ -40,11 +34,11 @@ typedef struct json_obj_t {
 
 typedef struct json_parser_t json_parser_t;
 
-json_parser_t*  json_parser_create(const char* json_cstring, json_parser_mem_allocator* allocator);
-json_obj_t      json_parser_parse_file(FILE* f, json_parser_mem_allocator* allocator); 
+json_parser_t*  json_parser_create(const char* json_cstring, dallocator_t allocator);
+json_obj_t      json_parser_parse_file(FILE* f, dallocator_t allocator); 
 void            json_parser_destroy(json_parser_t* parser);
 void            json_parser_fprint(FILE* stream, json_obj_t root, u8 indentation);
-void            json_parser_destroy_obj(json_obj_t* obj, json_parser_mem_allocator* allocator);
+void            json_parser_destroy_obj(json_obj_t* obj, dallocator_t allocator);
 bool            json_parser_parse(json_parser_t* parser, json_obj_t* out_parse_obj);
 
 #if defined(JSON_PARSER_IMPLEMENTATION)
@@ -55,21 +49,20 @@ bool            json_parser_parse(json_parser_t* parser, json_obj_t* out_parse_o
 #include <stdio.h>
 #include <ctype.h>
 
-#define DEFAULT_JSON_PARSER_MEM_ALLOCATOR (json_parser_mem_allocator){ .allocate = malloc, .reallocate = realloc, .free = free }
 #define SKIP_SPACES(c) do { while (isspace(*(c)) && *(c)) { (c)++; } if ((curr)[0] != '\0' && (curr)[1] != '\0' && (curr)[0] == '/' && (curr)[1] == '/') JUMP_TO_NEXT_LINE(curr); while (isspace(*(c)) && *(c)) { (c)++; } } while(0)
 #define SKIP_CHAR(curr, c) do { if (*(curr) != (c)) goto failure_ret; curr++; } while(0)
 #define LEN_TO_CHAR(curr, name_len, c) do { while(*((curr) + (name_len)) != (c) && *((curr) + (name_len))) (name_len)++; } while(0)
 #define JUMP_TO_NEXT_LINE(curr) do { if (*(curr) == '\n') { (curr)++; break; } if (*(curr) == '\0') break; (curr)++; } while(1)
 
 typedef struct json_parser_t {
-    json_parser_mem_allocator mem_alloc;
+    struct dallocator mem_alloc;
     char* json;
     u64 json_length;
 } json_parser_t;
 
-json_parser_t* json_parser_create(const char* json_string, json_parser_mem_allocator* allocator)
+json_parser_t* json_parser_create(const char* json_string, dallocator_t allocator)
 {
-    json_parser_mem_allocator alloc = allocator != NULL ? *allocator : DEFAULT_JSON_PARSER_MEM_ALLOCATOR;
+    struct dallocator alloc = allocator != NULL ? *allocator : DALLOCATOR_DEFAULT;
     json_parser_t * parser = (json_parser_t*)alloc.allocate(sizeof(json_parser_t));
     assert(parser != NULL);
 
@@ -95,7 +88,7 @@ void json_parser_destroy(json_parser_t* parser)
 }
 
 
-static bool _json_parse_(char** current, json_parser_mem_allocator allocator, json_obj_t* out)
+static bool _json_parse_(char** current, struct dallocator allocator, json_obj_t* out)
 {
     assert(out != NULL && current != NULL && *current != NULL);
 
@@ -408,11 +401,11 @@ void json_parser_fprint(FILE* stream, json_obj_t root, u8 spaces)
     }
 }
 
-void json_parser_destroy_obj(json_obj_t* obj, json_parser_mem_allocator* mem_allocator)
+void json_parser_destroy_obj(json_obj_t* obj, dallocator_t mem_allocator)
 {
     if (obj == NULL) return;
     
-    json_parser_mem_allocator allocator = mem_allocator == NULL ? DEFAULT_JSON_PARSER_MEM_ALLOCATOR : *mem_allocator;
+    struct dallocator allocator = mem_allocator == NULL ? DALLOCATOR_DEFAULT : *mem_allocator;
 
     if (obj->first_child != NULL)
     {
@@ -426,12 +419,12 @@ void json_parser_destroy_obj(json_obj_t* obj, json_parser_mem_allocator* mem_all
     allocator.free(obj);
 }
 
-json_obj_t json_parser_parse_file(FILE *f, json_parser_mem_allocator *_allocator) // caller must call json_parser_destroy_obj() ..
+json_obj_t json_parser_parse_file(FILE *f, dallocator_t _allocator) // caller must call json_parser_destroy_obj() ..
 {
     json_obj_t res = { 0 };
 
     if (!f) return res;
-    json_parser_mem_allocator allocator = _allocator == NULL ? DEFAULT_JSON_PARSER_MEM_ALLOCATOR : * _allocator;
+    struct dallocator allocator = _allocator == NULL ? DALLOCATOR_DEFAULT : * _allocator;
 
     char * buff;
     long sizeof_buff;
