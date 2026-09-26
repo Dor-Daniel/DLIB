@@ -42,6 +42,17 @@ u64      darena_commit_offset (darena_t arena);
 u64      darena_total_allocations_size (darena_t arena);
 u64      darena_total_allocations_count (darena_t arena);
 
+// In order to use this you must define the darena as global and call this macro in global scope
+#define DARENA_GENERATE_ALLOCATOR(darena, allocator_name) \
+    void * _darena_malloc_ ## darena ( u64 s ) { return darena_malloc(darena, s); } \
+    void * _darena_realloc_ ## darena ( void* b, u64 s ) { return darena_realloc(darena, b, s); } \
+    void   _darena_free_ ## darena ( void * b ) { return darena_free(darena, b); } \
+static const struct dallocator allocator_name =  (struct dallocator){ \
+        .allocate = _darena_malloc_ ## darena, \
+        .reallocate = _darena_realloc_ ## darena, \
+        .free = _darena_free_ ## darena \
+    }
+
 #define DKB(x) ((u64)(x) << 10) 
 #define DMB(x) ((u64)(x) << 20)
 #define DGB(x) ((u64)(x) << 30)
