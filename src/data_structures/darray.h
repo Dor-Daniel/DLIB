@@ -88,34 +88,41 @@ typedef int (*darr_compare)(const void*, const void*);
 
 #if defined(DARRAY_CONVENIENT)
 
-#if !defined(DARRAY_DEFAULT_CAPACITY)
-#define DARRAY_DEFAULT_CAPACITY 64UL
-#endif
+#   if !defined(DARRAY_DEFAULT_CAPACITY)
+#       define DARRAY_DEFAULT_CAPACITY 64UL
+#   endif
 
-#define _darr_expand(x) x
-#define _darr_choose(args, m2, m1, ...) m1
-#define _darr_create_null(type, backend_type) darr_create(DARRAY_DEFAULT_CAPACITY, sizeof(type), backend_type, NULL); 
-#define _darr_create_allocator(type, backend_type, allocator) darr_create(DARRAY_DEFAULT_CAPACITY, sizeof(type), backend_type, allocator); 
-#define cdarr_create(type, ...) \
-    _darr_expand(_darr_choose(__VA_ARGS__, _darr_create_allocator, _darr_create_null))(type, __VA_ARGS__)
-#define cdarr_push_at(darr, item, index) darr_push_at((void**)&darr, item, index)
-#define cdarr_pop_at(darr, item, index) darr_pop_at((void**)&darr, item, index)
-#define cdarr_push_back(darr, item) darr_push_back((void**)&darr, item)
-#define cdarr_pop_back(darr, item) darr_pop_back((void**)&darr, item)
+#   define _darr_expand(x) x
+#   define _darr_choose(args, m2, m1, ...) m1
+#   define _darr_create_null(type, backend_type) \
+        darr_create(DARRAY_DEFAULT_CAPACITY, sizeof(type), backend_type, NULL); 
+#   define _darr_create_allocator(type, backend_type, allocator) \
+        darr_create(DARRAY_DEFAULT_CAPACITY, sizeof(type), backend_type, allocator); 
+#   define cdarr_create(type, ...) \
+        _darr_expand( \
+            _darr_choose(__VA_ARGS__, _darr_create_allocator, _darr_create_null) \
+        )(type, __VA_ARGS__)
+#   define cdarr_push_at(darr, item, index) darr_push_at((void**)&(darr), item, index)
+#   define cdarr_pop_at(darr, out_item, index)  darr_pop_at((void**)&(darr), out_item, index)
+#   define cdarr_push_back(darr, item)      darr_push_back((void**)&(darr), item)
+#   define cdarr_pop_back(darr, out_item)       darr_pop_back((void**)&(darr), out_item)
+
 #endif
 
 void * darr_create(u32 capacity, u32 item_size, darr_type_e type , const dallocator_t allocator);
-void * darr_from_darr(const void* darr); // keeps the same backend & allocator
-void * darr_from_carr(const void* carr, u32 item_size, u32 length, darr_type_e type, const dallocator_t allocator);
-void * darr_from_darr_items(const void* darr, darr_type_e type , const dallocator_t allocator); // This will copy the darr but let you modify the backend type and allocator if allocator is null then the allocator is copied.
-bool   darr_push_back(void** darr, void* item);
-bool   darr_pop_back(void** darr, void* out_item);
-bool   darr_push_at(void ** darr, void* item, u32 index);
-bool   darr_pop_at(void ** darr, void* out_item, u32 index);
-void   darr_sort(void* darr, darr_sort_type_e sort_type, darr_compare compare);
-void * darr_at(void* darr, u32 index);
-u32    darrlen(const void* darr);
-void   darr_destroy(void* darr);
+void * darr_from_darr(const void * darr); // keeps the same backend & allocator
+void * darr_from_carr(const void * carr, u32 item_size, u32 length, darr_type_e type, const dallocator_t allocator);
+void * darr_from_darr_items(const void * darr, darr_type_e type , const dallocator_t allocator); // This will copy the darr but let you modify the backend type and allocator if allocator is null then the allocator is copied.
+bool   darr_push_back(void ** darr, void * item);
+bool   darr_pop_back(void ** darr, void * out_item);
+bool   darr_push_at(void ** darr, void * item, u32 index);
+bool   darr_pop_at(void ** darr, void * out_item, u32 index);
+void   darr_sort(void * darr, darr_sort_type_e sort_type, darr_compare compare);
+void * darr_at(void * darr, u32 index);
+u32    darrlen(const void * darr);
+void   darr_destroy(void * darr);
+void   darr_clear(void * darr);
+u32    darr_capacity(void * darr);
 
 #define darr_is_empty(darr) (darrlen((darr)) == 0)
 
@@ -179,7 +186,7 @@ void * darr_create(u32 capacity, u32 item_size, darr_type_e type , const dalloca
             darr_contiguous_head* h = (darr_contiguous_head*)head;
             h->allocator  = A;
             h->capacity   = capacity;
-            h->count      = 0;
+            h->count      = 0UL;
             h->item_size  = item_size;
             h->type       = DARR_TYPE_CONTIGUOUS;
             return h->data;
@@ -193,11 +200,11 @@ void * darr_create(u32 capacity, u32 item_size, darr_type_e type , const dalloca
             darr_linked_list_head* h = (darr_linked_list_head*)head;
             h->allocator = A;
             h->capacity  = capacity;
-            h->count     = 0;
+            h->count     = 0uL;
             h->item_size = item_size;
             h->type      = DARR_TYPE_LINKED_LIST;
-            h->head      = 0;
-            h->tail      = 0;
+            h->head      = -1;
+            h->tail      = -1;
             return h->data;
         } break;
         default: DARR_UNREACHABLE; break;
@@ -348,7 +355,7 @@ void * darr_from_darr_items(const void *darr, darr_type_e type, const dallocator
             i32 i = h->head;
             while (i != -1)
             {
-                darr_push_back(ndarr, JUMP_TO_LINKED_LIST(h, i));
+                darr_push_back(&ndarr, JUMP_TO_LINKED_LIST(h, i)->value);
                 i = JUMP_TO_LINKED_LIST(h, i)->next;
             }
 
@@ -374,7 +381,7 @@ bool darr_push_back(void** darr, void* item)
 
             if (head->count >= head->capacity)
             {
-                u64 new_capacity = head->capacity > 0 ? head->capacity * 2 : 32;
+                u64 new_capacity = head->capacity > 0UL ? head->capacity * 2UL : 32UL;
                 void * block = head->allocator.reallocate(
                     head, 
                     sizeof(darr_contiguous_head) + head->item_size * new_capacity
@@ -465,7 +472,7 @@ bool darr_pop_back(void **darr, void *out_item)
 
             // TODO: if (head->count < head->capacity / 4) realloc ...            
 
-            if (head->count == 0) return false;
+            if (head->count == 0UL) return false;
 
             u8* p = JUMP_TO_CONTIGUOUS(head, head->count - 1);
             if (out_item) memcpy(out_item, p, head->item_size);
@@ -479,11 +486,11 @@ bool darr_pop_back(void **darr, void *out_item)
 
             // TODO: if (head->count < head->capacity / 4) realloc ...
 
-            if (head->count == 0) return false;
+            if (head->count == 0UL) return false;
 
             darr_linked_list_entry* e = JUMP_TO_LINKED_LIST(head, head->tail);
 
-            if (head->count > 1)
+            if (head->count > 1UL)
             {
                 darr_linked_list_entry* ep = JUMP_TO_LINKED_LIST(head, e->prev);
                 ep->next = -1;
@@ -491,7 +498,7 @@ bool darr_pop_back(void **darr, void *out_item)
             }
             else
             {
-                if (head->count == 0) { head->head = head->tail = -1; }
+                if (head->count == 0UL) { head->head = head->tail = -1; }
                 else head->tail = head->head;
             }
             
@@ -510,7 +517,6 @@ bool darr_pop_back(void **darr, void *out_item)
 bool darr_push_at(void **darr, void *item, u32 index)
 {
     if (!darr || !*darr || !item || index > darrlen(*darr)) return false;
-    else if (index == darrlen(*darr)) return darr_push_back(darr, item);
 
     darr_type_e type = DARR_TYPE(*darr);
 
@@ -522,7 +528,7 @@ bool darr_push_at(void **darr, void *item, u32 index)
             
             if (h->count >= h->capacity)
             {
-                u64 new_capacity = h->capacity > 0 ? h->capacity * 2 : 32;
+                u64 new_capacity = h->capacity > 0UL ? h->capacity * 2UL : 32UL;
                 void * block = h->allocator.reallocate(
                     h, 
                     sizeof(darr_contiguous_head) + h->item_size * new_capacity
@@ -539,11 +545,11 @@ bool darr_push_at(void **darr, void *item, u32 index)
             }
 
             memmove(
-                h->data + (index + 1) * h->item_size, 
+                h->data + (index + 1UL) * h->item_size, 
                 h->data + index * h->item_size, 
                 (h->count - index) * h->item_size
             );
-            memcpy(h->data + index, item, h->item_size);
+            memcpy(h->data + index * h->item_size, item, h->item_size);
             h->count++;
             return true;
         } break;
@@ -553,7 +559,7 @@ bool darr_push_at(void **darr, void *item, u32 index)
 
             if (h->count >= h->capacity)
             {
-                u64 new_capacity = h->capacity > 0 ? h->capacity * 2 : 32;
+                u64 new_capacity = h->capacity > 0UL ? h->capacity * 2UL : 32UL;
                 void * block = h->allocator.reallocate(
                     h, 
                     sizeof(darr_linked_list_head) + (h->item_size + sizeof(darr_linked_list_entry)) * new_capacity
@@ -573,7 +579,7 @@ bool darr_push_at(void **darr, void *item, u32 index)
             darr_linked_list_entry* pe = JUMP_TO_LINKED_LIST(h, h->head);
             darr_linked_list_entry* ppe = NULL;
             
-            for (i32 i = 0; i < (i32)index; i++)
+            for (i32 i = 0UL; i < (i32)index; i++)
             {
                 ppe = pe;
                 pe = JUMP_TO_LINKED_LIST(h, pe->next);
@@ -607,7 +613,6 @@ bool darr_push_at(void **darr, void *item, u32 index)
 bool darr_pop_at(void **darr, void *out_item, u32 index)
 {
     if (!darr || !*darr || index >= darrlen(*darr)) return false;
-    else if(index + 1 == darrlen(*darr)) return darr_pop_back(darr, out_item);
 
     darr_type_e type = DARR_TYPE(*darr);
 
@@ -623,7 +628,7 @@ bool darr_pop_at(void **darr, void *out_item, u32 index)
             
             memmove(
                 h->data + index * h->item_size, 
-                h->data + (index + 1) * h->item_size, 
+                h->data + (index + 1UL) * h->item_size, 
                 (h->count - index) * h->item_size
             );
             h->count--;
@@ -638,11 +643,13 @@ bool darr_pop_at(void **darr, void *out_item, u32 index)
             darr_linked_list_entry* pe = JUMP_TO_LINKED_LIST(h, h->head);
             darr_linked_list_entry* ppe = NULL;
             
-            for (i32 i = 0; i < (i32)index; i++)
+            for (i32 i = 0UL; i < (i32)index; i++)
             {
                 ppe = pe;
                 pe = JUMP_TO_LINKED_LIST(h, pe->next);
             }
+
+            if (out_item) memcpy(out_item, pe->value, h->item_size);
 
             if (!ppe) // index must be 0
             {
@@ -653,8 +660,8 @@ bool darr_pop_at(void **darr, void *out_item, u32 index)
 
                 h->count--;
 
-                if (h->count == 0) { h->tail = h->head = -1; }
-                else if (h->count == 1) { h->tail = h->head; }
+                if (h->count == 0UL) { h->tail = h->head = -1; }
+                else if (h->count == 1UL) { h->tail = h->head; }
                 else
                 {
                     darr_linked_list_entry* tail = JUMP_TO_LINKED_LIST(h, h->tail);
@@ -666,29 +673,26 @@ bool darr_pop_at(void **darr, void *out_item, u32 index)
                     }
                 }
 
-                if (out_item) memcpy(out_item, pe->value, h->item_size);
-
                 return true;
             }
             
             i32 idx = ppe->next;
             ppe->next = pe->next;
-            JUMP_TO_LINKED_LIST(h, pe->next)->prev = pe->prev;
+            if (pe->next != -1) JUMP_TO_LINKED_LIST(h, pe->next)->prev = pe->prev;
             h->count--;
 
-            if (h->count == 1) { h->tail = h->head; }
-            else
+            if (h->count == 1UL) { h->tail = h->head; }
+            else if (idx != (i32)h->count)
             {
-                darr_linked_list_entry* tail = JUMP_TO_LINKED_LIST(h, h->tail);
-                if (tail->prev > 0 && tail->prev < (i32)h->count)
-                {
-                    darr_linked_list_entry* tn = JUMP_TO_LINKED_LIST(h, tail->prev);
-                    tn->next = idx;
-                    memmove(JUMP_TO_LINKED_LIST(h, idx), tail, sizeof(darr_linked_list_entry) + h->item_size);
-                }
-            }
+                darr_linked_list_entry* tail = JUMP_TO_LINKED_LIST(h, h->count);
+                darr_linked_list_entry* tailp = tail->next != - 1 ? JUMP_TO_LINKED_LIST(h, tail->next) : NULL;
+                darr_linked_list_entry* tailn = tail->prev != - 1 ? JUMP_TO_LINKED_LIST(h, tail->prev) : NULL;
 
-            if (out_item) memcpy(out_item, pe->value, h->item_size);
+                if (tailp) tailp->next = idx;
+                if (tailn) tailn->prev = idx;
+
+                memmove(pe, tail, sizeof(darr_linked_list_entry) + h->item_size);
+            }
 
             return true;
         } break;
@@ -759,7 +763,7 @@ inline void *darr_at(void *darr, u32 index)
 
 inline u32 darrlen(const void *darr)
 {
-    if (!darr) return 0;
+    if (!darr) return 0UL;
     
     darr_type_e type = DARR_TYPE(darr);
 
@@ -778,7 +782,7 @@ inline u32 darrlen(const void *darr)
         default: DARR_UNREACHABLE; break;
     }
 
-    return 0;
+    return 0UL;
 }
 
 inline void darr_destroy(void *darr)
@@ -802,6 +806,53 @@ inline void darr_destroy(void *darr)
             default: DARR_UNREACHABLE; break;
         }
     }
+}
+
+inline void darr_clear(void *darr)
+{
+    if (!darr) return;
+
+    darr_type_e type = DARR_TYPE(darr);
+
+    switch (type)
+    {
+        case DARR_TYPE_CONTIGUOUS:
+        {
+            darr_contiguous_head* h = DARR_TO_HEAD_CONTIGUOUS(darr);
+            h->count = 0UL;
+        } break;
+        case DARR_TYPE_LINKED_LIST:
+        {
+            darr_linked_list_head* h = DARR_TO_HEAD_LINKED_LIST(darr);
+            h->count = 0UL;
+            h->head = -1;
+            h->tail = -1;
+        } break;
+        default: DARR_UNREACHABLE; break;
+    }
+}
+
+inline u32 darr_capacity(void *darr)
+{
+    if (!darr) return 0UL;
+
+    darr_type_e type = DARR_TYPE(darr);
+
+    switch (type)
+    {
+        case DARR_TYPE_CONTIGUOUS:
+        {
+            darr_contiguous_head* h = DARR_TO_HEAD_CONTIGUOUS(darr);
+            return h->capacity;
+        } break;
+        case DARR_TYPE_LINKED_LIST:
+        {
+            darr_linked_list_head* h = DARR_TO_HEAD_LINKED_LIST(darr);
+            return h->capacity;
+        } break;
+        default: DARR_UNREACHABLE; break;
+    }
+    return 0UL;
 }
 
 #endif
