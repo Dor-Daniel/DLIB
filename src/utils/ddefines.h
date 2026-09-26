@@ -18,3 +18,11 @@ typedef double              f64;
     #include <stdbool.h>
 #endif
 
+typedef struct dallocator {
+    void * (*allocate) ( u64 );
+    void * (*reallocate) ( void *, u64 );
+    void   (*free) ( void * );
+} * dallocator_t;
+
+#include <stdlib.h>
+#define DALLOCATOR_DEFAULT (struct dallocator){ .allocate = malloc, .reallocate = realloc, .free = free }
