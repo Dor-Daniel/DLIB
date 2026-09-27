@@ -59,7 +59,16 @@
             #include <stdlib.h>
             #define DALLOCATOR_DEFAULT (struct dallocator){ .allocate = malloc, .reallocate = realloc, .free = free }
         So when ever i ask an allocator from you, you can use NULL for default.
-    
+        
+        NOTE: You can define the DARRAY_CONVENIENT macro before including so you have convenience macros.
+            The reason it is not by default is because the inline hints in my IDE just showing __VA_ARGS__ not showing 
+                the requested arguments and then i need to take a look to remember, i dont know what do you prefer, so i left it as it is.
+
+        NOTE:
+            it is recommended to use the iterator for scaning linked list it is allways efficient compare to calling darr_at multiple times...
+            for contiguous typed array it is recommended to cast it to your type * and iterate over it as regular c-array it is the best performance 
+                you can get.
+
     ======== This section is for me! ================
 
     TODO: Add sorting functions and other arrays algorithms
@@ -69,6 +78,12 @@
     TODO: Add more backends implementations 
 
 */
+
+typedef struct darr_iter {
+    const void * darray;
+    bool ordered;
+    void * entry;
+} * darr_iter_t;
 
 typedef enum darr_sort_type : u8
 {
@@ -102,17 +117,33 @@ typedef int (*darr_compare)(const void*, const void*);
         _darr_expand( \
             _darr_choose(__VA_ARGS__, _darr_create_allocator, _darr_create_null) \
         )(type, __VA_ARGS__)
-#   define cdarr_push_at(darr, item, index) darr_push_at((void**)&(darr), item, index)
-#   define cdarr_pop_at(darr, out_item, index)  darr_pop_at((void**)&(darr), out_item, index)
-#   define cdarr_push_back(darr, item)      darr_push_back((void**)&(darr), item)
-#   define cdarr_pop_back(darr, out_item)       darr_pop_back((void**)&(darr), out_item)
+#   define _darr_from_carr_null_(carr, item_size, length, type) \
+        darr_from_carr(carr, item_size, length, type, NULL)
+#   define _darr_from_carr_allocator_(carr, item_size, length, type, allocator) \
+        darr_from_carr(carr, item_size, length, type, allocator)
+#   define cdarr_from_carr(carr, item_size, length, ...) \
+        _darr_expand( \
+            _darr_choose(__VA_ARGS__, _darr_from_carr_allocator_, _darr_from_carr_null_) \
+        )(carr, item_size, length, __VA_ARGS__)
+#   define cdarr_push_at(darr, item, index) \
+        darr_push_at((void**)&(darr), item, index)
+#   define cdarr_pop_at(darr, out_item, index) \
+        darr_pop_at((void**)&(darr), out_item, index)
+#   define cdarr_push_back(darr, item) \
+        darr_push_back((void**)&(darr), item)
+#   define cdarr_pop_back(darr, out_item) \
+        darr_pop_back((void**)&(darr), out_item)
 
 #endif
 
+// if allocator is NULL then it uses the default one (malloc, realloc, free)
 void * darr_create(u32 capacity, u32 item_size, darr_type_e type , const dallocator_t allocator);
-void * darr_from_darr(const void * darr); // keeps the same backend & allocator
+// keeps the same backend & allocator
+void * darr_from_darr(const void * darr); 
+// if allocator is NULL then it uses the default one (malloc, realloc, free)
 void * darr_from_carr(const void * carr, u32 item_size, u32 length, darr_type_e type, const dallocator_t allocator);
-void * darr_from_darr_items(const void * darr, darr_type_e type , const dallocator_t allocator); // This will copy the darr but let you modify the backend type and allocator if allocator is null then the allocator is copied.
+// This will copy the darr but let you modify the backend type and allocator if allocator is null then the allocator is copied.
+void * darr_from_darr_items(const void * darr, darr_type_e type , const dallocator_t allocator); 
 bool   darr_push_back(void ** darr, void * item);
 bool   darr_pop_back(void ** darr, void * out_item);
 bool   darr_push_at(void ** darr, void * item, u32 index);
@@ -123,6 +154,24 @@ u32    darrlen(const void * darr);
 void   darr_destroy(void * darr);
 void   darr_clear(void * darr);
 u32    darr_capacity(void * darr);
+// The bool stands for: scaning the array by order (ordered = true ) or unordered (ordered = false) - unordered might increase performance
+void   darr_iter_begin(void* darr, darr_iter_t iter, bool ordered);
+/*
+        should be used:
+            int * darr = darray_create(capacity, sizeof(int), DARR_TYPE_CONTIGUOUS, NULL);
+
+            ...
+
+            struct darr_iter it = { };
+            darr_iter_begin(darr, &it, true);
+
+            int i;
+            while (darr_iter_next(&it, i))
+            {
+                printf("%i\n", i);
+            }
+*/
+bool   darr_iter_next(darr_iter_t iter, void* out_item);
 
 #define darr_is_empty(darr) (darrlen((darr)) == 0)
 
@@ -853,6 +902,83 @@ inline u32 darr_capacity(void *darr)
         default: DARR_UNREACHABLE; break;
     }
     return 0UL;
+}
+
+inline void darr_iter_begin(void *darr, darr_iter_t iter, bool ordered)
+{
+    if (!darr || !iter) return;
+    
+    darr_type_e type = DARR_TYPE(darr);
+
+    switch (type)
+    {
+        case DARR_TYPE_CONTIGUOUS:
+        {
+            darr_contiguous_head* h = DARR_TO_HEAD_CONTIGUOUS(darr);
+            struct darr_iter it = {
+                .darray = darr,
+                .ordered = ordered,
+                .entry = h->data
+            };
+            *iter = it;
+        } break;
+        case DARR_TYPE_LINKED_LIST:
+        {
+            darr_linked_list_head* h = DARR_TO_HEAD_LINKED_LIST(darr);
+            struct darr_iter it = {
+                .darray = darr,
+                .ordered = ordered,
+                .entry = ordered ? JUMP_TO_LINKED_LIST(h, h->head) : h->data
+            };
+            *iter = it;            
+        } break;
+        default: DARR_UNREACHABLE; break;
+    }
+}
+
+inline bool darr_iter_next(darr_iter_t iter, void *out_item)
+{
+    if (!iter || !iter->darray || !iter->entry) return false;
+
+    darr_type_e type = DARR_TYPE(iter->darray);
+
+    switch (type)
+    {
+        case DARR_TYPE_CONTIGUOUS:
+        {
+            darr_contiguous_head* h = DARR_TO_HEAD_CONTIGUOUS(iter->darray);
+
+            if (out_item) memcpy(out_item, iter->entry, h->item_size);
+
+            iter->entry += h->item_size;
+
+            bool not_end = iter->darray = h->count * h->item_size > iter->entry;
+            if (!not_end) iter->entry = NULL;
+
+            return not_end;
+        } break;
+        case DARR_TYPE_LINKED_LIST:
+        {
+            darr_linked_list_head* h = DARR_TO_HEAD_LINKED_LIST(iter->darray);
+
+            darr_linked_list_entry* e = (darr_linked_list_entry*)iter->entry;
+            if (out_item) memcpy(out_item, e->value, h->item_size);
+
+            iter->entry = iter->ordered ? 
+                (e->next != -1 ? JUMP_TO_LINKED_LIST(h, e->next) : NULL) : 
+                (e + sizeof(darr_linked_list_entry) + h->item_size);
+            
+            bool not_end = iter->ordered ? iter->entry != NULL : 
+                iter->darray + (sizeof(darr_linked_list_entry) + h->item_size) * h->count < iter->entry;
+            
+            if (!not_end) iter->entry = NULL;
+
+            return not_end;
+        } break;
+        default: DARR_UNREACHABLE; break;
+    }
+
+    return false;
 }
 
 #endif
