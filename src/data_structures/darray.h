@@ -154,6 +154,7 @@ u32    darrlen(const void * darr);
 void   darr_destroy(void * darr);
 void   darr_clear(void * darr);
 u32    darr_capacity(void * darr);
+void   darr_map(void* darr, void (*map)(void*));
 // The bool stands for: scaning the array by order (ordered = true ) or unordered (ordered = false) - unordered might increase performance
 void   darr_iter_begin(void* darr, darr_iter_t iter, bool ordered);
 /*
@@ -901,6 +902,39 @@ inline u32 darr_capacity(void *darr)
         default: DARR_UNREACHABLE; break;
     }
     return 0UL;
+}
+
+inline void darr_map(void *darr, void (*map)(void *))
+{
+    if (!darr || !map) return;
+
+    darr_type_e type = DARR_TYPE(darr);
+
+    switch (type)
+    {
+        case DARR_TYPE_CONTIGUOUS: 
+        {
+            darr_contiguous_head* h = DARR_TO_HEAD_CONTIGUOUS(darr);
+            u8* item = h->data + 1;
+            while (item < h->data + 1 + h->count * h->item_size)
+            {
+                map((void*)item);
+                item += h->item_size;
+            }
+        } break;
+        case DARR_TYPE_LINKED_LIST: 
+        {
+            darr_linked_list_head* h = DARR_TO_HEAD_LINKED_LIST(darr);
+            darr_linked_list_entry* e = (darr_linked_list_entry*)(h->data + 1);
+            while (e < h->data + 1 + h->count * (h->item_size + sizeof(darr_linked_list_entry)))
+            {
+                map((void*)e->value);
+                e += h->item_size + sizeof(darr_linked_list_entry);
+            }
+        } break;
+        default: DARR_UNREACHABLE; break;
+    }
+
 }
 
 inline void darr_iter_begin(void *darr, darr_iter_t iter, bool ordered)
