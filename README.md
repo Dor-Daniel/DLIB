@@ -1,12 +1,12 @@
 # DLIB
 
 DLIB stands for Dor's Library.
-This is a personal C-Library With Windows Platform support ONLY.
+This is a personal C-Library With Windows Platform support ONLY (For now).
 
 The word "personal" means that i do not take any responsabilty for your usage but you are welcome to use how ever you like.
 
 NOTES: 
-- this library is IN-PROCESS it has some cool things but nothing is finished yet.
+- this library is IN-PROGRESS it has some cool things but nothing is finished yet.
 
 - This library is inspired by nothings/stb style and i enjoy header only copy-paste-use so i did it for myself. Althogh there are some dependecies in those library so you might need to use multiple files while actually need one. This is unfortenate and i plan to take care of this in the future.
 
