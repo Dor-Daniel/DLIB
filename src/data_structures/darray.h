@@ -926,7 +926,7 @@ inline void darr_map(void *darr, void (*map)(void *))
         {
             darr_linked_list_head* h = DARR_TO_HEAD_LINKED_LIST(darr);
             darr_linked_list_entry* e = (darr_linked_list_entry*)(h->data + 1);
-            while (e < h->data + 1 + h->count * (h->item_size + sizeof(darr_linked_list_entry)))
+            while ((u8*)e < h->data + 1 + h->count * (h->item_size + sizeof(darr_linked_list_entry)))
             {
                 map((void*)e->value);
                 e += h->item_size + sizeof(darr_linked_list_entry);
