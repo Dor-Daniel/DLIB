@@ -11,11 +11,50 @@
 #define TWO_PI 6.2831855F
 #endif
 
+// Usage printf("My byte = 0b"BYTE8_PRINT_FMT"\n", BYTE8_TO_PRINT_FMT(my_byte));
+#define BYTE8_PRINT_FMT "%c%c%c%c%c%c%c%c"
+#define BYTE8_TO_PRINT_FMT(b) \
+((b) & 0b10000000) ? '1' : '0', \
+((b) & 0b01000000) ? '1' : '0', \
+((b) & 0b00100000) ? '1' : '0', \
+((b) & 0b00010000) ? '1' : '0', \
+((b) & 0b00001000) ? '1' : '0', \
+((b) & 0b00000100) ? '1' : '0', \
+((b) & 0b00000010) ? '1' : '0', \
+((b) & 0b00000001) ? '1' : '0'
+
+// Usage printf("My byte = 0b"BYTE32_PRINT_FMT"\n", BYTE32_TO_PRINT_FMT(my_byte));
+#define BYTE32_PRINT_FMT \
+    BYTE8_PRINT_FMT BYTE8_PRINT_FMT BYTE8_PRINT_FMT BYTE8_PRINT_FMT
+#define BYTE32_TO_PRINT_FMT(b) \
+    BYTE8_TO_PRINT_FMT((u8)((b & 0xFF000000) >> 8 * 3)), \
+    BYTE8_TO_PRINT_FMT((u8)((b & 0x00FF0000) >> 8 * 2)), \
+    BYTE8_TO_PRINT_FMT((u8)((b & 0x0000FF00) >> 8 * 1)), \
+    BYTE8_TO_PRINT_FMT((u8)((b & 0x000000FF) >> 8 * 0)) 
+
 f32 fclamp(f32 x, f32 min_x, f32 max_x);
 f32 flerp(f32 a, f32 b, f32 t);
 
+u32 u32_pack_bytes(u8 msb , u8 msb2, u8 lsb2, u8 lsb);
+
+u8 u8_min(u8 a, u8 b);
+u8 u8_max(u8 a, u8 b);
+u8 u8_clamp(u8 x, u8 m, u8 M);
+u8 u8_bit_at(u8 byte, u8 where);
+u8 u8_unpack_byte_32(u32 bytes, u8 where);
+u8 u8_unpack_byte_64(u64 bytes, u8 where);
+
 #if !defined(DMATH_DEFINTIONS_NO_LINEAR_ALGEBRA)
 
+// =========================================================
+//                      Vector 2
+// =========================================================
+
+// Usage printf("My vector: " DVEC2_PRINT_FMT "\n", DVEC2_TO_PRINT_FMT(my_vector));
+#define VEC2_PRINT_FMT "(%f, %f)"
+#define VEC2_TO_PRINT_FMT(v) (v).x, (v).y
+
+vec2_t * vec2_allocate(f32 x, f32 y, void* (*allocator)(size_t));  // allocate new vec2(x, y) if allocator NULL then uses malloc, caller must free
 vec2_t vec2(f32 x, f32 y); 
 vec2_t vec2_0(void);                                            // return vec2(0, 0)
 vec2_t vec2_1(void);                                            // return vec2(1, 1)
@@ -57,8 +96,15 @@ f32    vec2_avg(vec2_t v);                                      // return avarag
 #define vec2_foreach(v, iter) \
     for (f32* __iter__ = v.as_arr, iter = *__iter__; __iter__ < v.as_arr + 2ULL; *__iter__ = iter, __iter__++)
 
-#endif
+// =========================================================
+//                      Vector 3
+// =========================================================
 
+// Usage printf("My vector: " DVEC2_PRINT_FMT "\n", DVEC2_TO_PRINT_FMT(my_vector));
+#define VEC3_PRINT_FMT "(%f, %f, %f)"
+#define VEC3_TO_PRINT_FMT(v) (v).x, (v).y, (v).z
+
+vec3_t * vec3_allocate(f32 x, f32 y, f32 z, void* (*allocator)(size_t));        // allocate new vec3(x, y, z) if allocator NULL then uses malloc, caller must free
 vec3_t vec3(f32 x, f32 y, f32 z);
 vec3_t vec3_0(void);                                                            // return vec3(0, 0, 0)
 vec3_t vec3_1(void);                                                            // return vec3(1, 1, 1)
@@ -104,9 +150,41 @@ f32    vec3_avg(vec3_t v);                                                      
 #define vec3_foreach(v, iter) \
     for (f32* __iter__ = v.as_arr, iter = *__iter__; __iter__ < v.as_arr + 3ULL; *__iter__ = iter, __iter__++)
 
-#if defined(DMATH_IMPLEMENTATION) || 1
 
-f32 fclamp(f32 x, f32 min_x, f32 max_x)
+// =========================================================
+//                      Vector 4
+// =========================================================
+
+// =========================================================
+//                      Vector
+// =========================================================
+    
+// =========================================================
+//                      Matrix 2x2
+// =========================================================
+
+// =========================================================
+//                      Matrix 3x3
+// =========================================================
+
+// =========================================================
+//                      Matrix
+// =========================================================
+
+// =========================================================
+//                      Matrix
+// =========================================================
+
+#endif
+
+
+// =========================================================
+//                      IMPLEMENTATION
+// =========================================================
+#if defined(DMATH_IMPLEMENTATION) || 1
+#include <stdlib.h> // malloc
+
+inline f32 fclamp(f32 x, f32 min_x, f32 max_x)
 {
     f32 result = 0.0F;
 
@@ -125,7 +203,94 @@ inline f32 flerp(f32 a, f32 b, f32 t)
     return result;
 }
 
+u32 u32_pack_bytes(u8 msb, u8 msb2, u8 lsb2, u8 lsb)
+{
+    u32 result = 0UL;
+
+    result |= (u32)(msb)  << 8U * 3U;
+    result |= (u32)(msb2) << 8U * 2U;
+    result |= (u32)(lsb2) << 8U * 1U;
+    result |= (u32)(lsb)  << 8U * 0U;
+
+    return result;
+}
+
+inline u8 u8_min(u8 a, u8 b)
+{
+    u8 result = 0U;
+
+    result = a < b ? a : b;
+
+    return result;
+}
+
+inline u8 u8_max(u8 a, u8 b)
+{
+    u8 result = 0U;
+
+    result = a > b ? a : b;
+
+    return result;
+}
+
+inline u8 u8_clamp(u8 x, u8 m, u8 M)
+{
+    u8 result = 0U;
+
+    result = x;
+
+    result = result < M ? result : M;
+    result = result > m ? result : m;
+
+    return result;
+}
+
+inline u8 u8_bit_at(u8 byte, u8 where)
+{
+    u8 result = 0U;
+
+    result = (byte) & (1U << where);
+
+    return result;
+}
+
+inline u8 u8_unpack_byte_32(u32 bytes, u8 where)
+{
+    u8 result = 0U;
+
+    const u8 mask = 0xFF;
+
+    result = (u8)(((((u32)mask) << where) & bytes) >> where);
+
+    return result;
+}
+
+inline u8 u8_unpack_byte_64(u64 bytes, u8 where)
+{
+    u8 result = 0U;
+
+    const u8 mask = 0xFF;
+
+    result = (u8)(((((u64)mask) << where) & bytes) >> where);
+
+    return result;
+}
+
 #if !defined(DMATH_DEFINTIONS_NO_LINEAR_ALGEBRA)
+
+inline vec2_t *vec2_allocate(f32 x, f32 y, void *(*allocator)(size_t))
+{
+    void * (*A)(size_t) = allocator != NULL ? allocator : malloc;
+    
+    void * block = A(sizeof(vec2_t));
+    if (!block) return NULL;
+
+    vec2_t * result = (vec2_t*) block;
+    result->x = x;
+    result->y = y;
+
+    return result;
+}
 
 inline vec2_t vec2(f32 x, f32 y)
 {
@@ -517,6 +682,21 @@ inline f32 vec2_avg(vec2_t v)
 
     result = (v.x + v.y) * 0.5F;
     
+    return result;
+}
+
+inline vec3_t *vec3_allocate(f32 x, f32 y, f32 z, void *(*allocator)(size_t))
+{
+    void* (*A)(size_t) = allocator ? allocator : malloc;
+    void* block = A(sizeof(vec3_t));
+    if (!block) return NULL;
+
+    vec3_t* result = (vec3_t*)block;
+
+    result->x = x;
+    result->y = y;
+    result->z = z;
+
     return result;
 }
 
