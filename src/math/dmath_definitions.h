@@ -397,7 +397,7 @@ typedef union sphere_t
     f32 as_arr[ 4 ]; // center x, center y, center z, radius
     union {
     #if defined(DMATH_DEFINITIONS_VERBOSE)
-        vec3_t center, c, M, origin, o;
+        vec3_t center, M, origin, o;
         struct {
             f32 a, b, c;
         };

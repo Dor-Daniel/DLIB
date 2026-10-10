@@ -11,6 +11,8 @@
 #define TWO_PI 6.2831855F
 #endif
 
+#if !defined(DMATH_NO_BYTE_ARITHMETIC)
+
 // Usage printf("My byte = 0b"BYTE8_PRINT_FMT"\n", BYTE8_TO_PRINT_FMT(my_byte));
 #define BYTE8_PRINT_FMT "%c%c%c%c%c%c%c%c"
 #define BYTE8_TO_PRINT_FMT(b) \
@@ -32,17 +34,19 @@
     BYTE8_TO_PRINT_FMT((u8)((b & 0x0000FF00) >> 8 * 1)), \
     BYTE8_TO_PRINT_FMT((u8)((b & 0x000000FF) >> 8 * 0)) 
 
-f32 fclamp(f32 x, f32 min_x, f32 max_x);
-f32 flerp(f32 a, f32 b, f32 t);
+f32 fclamp(const f32 x, const f32 min_x, const f32 max_x);
+f32 flerp(const f32 a, const f32 b, const f32 t);
 
-u32 u32_pack_bytes(u8 msb , u8 msb2, u8 lsb2, u8 lsb);
+u32 u32_pack_bytes(const u8 msb , const u8 msb2, const u8 lsb2, const u8 lsb);
 
-u8 u8_min(u8 a, u8 b);
-u8 u8_max(u8 a, u8 b);
-u8 u8_clamp(u8 x, u8 m, u8 M);
-u8 u8_bit_at(u8 byte, u8 where);
-u8 u8_unpack_byte_32(u32 bytes, u8 where);
-u8 u8_unpack_byte_64(u64 bytes, u8 where);
+u8 u8_min(const u8 a, const u8 b);
+u8 u8_max(const u8 a, const u8 b);
+u8 u8_clamp(const u8 x, const u8 m, const u8 M);
+u8 u8_bit_at(const u8 byte, const u8 where);
+u8 u8_unpack_byte_32(const u32 bytes, const u8 where);
+u8 u8_unpack_byte_64(const u64 bytes, const u8 where);
+
+#endif
 
 #if !defined(DMATH_DEFINTIONS_NO_LINEAR_ALGEBRA)
 
@@ -54,43 +58,43 @@ u8 u8_unpack_byte_64(u64 bytes, u8 where);
 #define VEC2_PRINT_FMT "(%f, %f)"
 #define VEC2_TO_PRINT_FMT(v) (v).x, (v).y
 
-vec2_t * vec2_allocate(f32 x, f32 y, void* (*allocator)(size_t));  // allocate new vec2(x, y) if allocator NULL then uses malloc, caller must free
-vec2_t vec2(f32 x, f32 y); 
+vec2_t * vec2_allocate(const f32 x, const f32 y, void* (*allocator)(size_t));  // allocate new vec2(x, y) if allocator NULL then uses malloc, caller must free
+vec2_t vec2(const f32 x, const f32 y); 
 vec2_t vec2_0(void);                                            // return vec2(0, 0)
 vec2_t vec2_1(void);                                            // return vec2(1, 1)
 vec2_t vec2_e1(void);                                           // return vec2(1, 0)
 vec2_t vec2_e2(void);                                           // return vec2(0, 1)
-vec2_t vec2_v(f32 v);                                           // return vec2(val, val)
-vec2_t vec2_neg(vec2_t v);                                      // return vec2(-v.x, -v.y)
-vec2_t vec2_clamp(vec2_t v, vec2_t m, vec2_t M);                // return vec2(fclamp(v.x, m.x, M.x), fclamp(v.x, m.x, M.x))
-vec2_t vec2_add(vec2_t v1, vec2_t v2);                          // return vec2(v1.x + v2.x, v1.y+ v2.y)
-vec2_t vec2_sub(vec2_t v1, vec2_t v2);                          // return vec2(v1.x- v2.x, v1.y - v2.y)
-vec2_t vec2_mul(vec2_t v1, vec2_t v2);                          // return vec2(v1.x*v2.x, v1.y*v2.y)
-vec2_t vec2_div(vec2_t v1, vec2_t v2);                          // return vec2(v1.x/v2.x, v1.y/v2.y)
-vec2_t vec2_add_v(vec2_t v, f32 val);                           // return vec2(v.x + val, v.y + val)
-vec2_t vec2_sub_v(vec2_t v, f32 val);                           // return vec2(v.x - val, v.y - val)
-vec2_t vec2_mul_v(vec2_t v, f32 val);                           // return vec2(v.x * val, v.y * val)
-vec2_t vec2_div_v(vec2_t v, f32 val);                           // return vec2(v.x / val, v.y / val)
-vec2_t vec2_activate(vec2_t v, f32 (*activation_func)(f32));    // return vec2(f(v.x), f(v.y))
-vec2_t vec2_normalize(vec2_t v);                                // return v / Length(v)
-vec2_t vec2_abs(vec2_t v);                                      // return vec2(abs(v.x), abs(v.y))
-vec2_t vec2_lerp(vec2_t a, vec2_t b, vec2_t t);                 // return a + (b - a) * t
-vec2_t vec2_slerp(vec2_t a, vec2_t b, vec2_t t);                // return a * cos(vec2_angle_between(a,b) * t) + (b - a * vec2_dot(a,b)) * sin(vec2_angle_between(a,b) * t)
-vec2_t vec2_linear_comb(vec2_t v, vec2_t u, f32 a1, f32 a2);    // return a1 * v1 + a2 * v2
-vec2_t vec2_transform(vec2_t v, mat2x2_t M);                    // return M * v as matrix mult
-vec2_t vec2_from_angle(f32 alpha);                              // return vec2(cos(alpha),sin(alpha))
-vec2_t vec2_from_angle_and_r(f32 alpha, f32 radius);            // return vec2(r * cos(alpha), r * sin(alpha))
-f32    vec2_length(vec2_t v);                                   // return sqrt(v.x * v.x + v.y * v.y)
-f32    vec2_dist(vec2_t v, vec2_t u);                           // return length(v-u) 
-f32    vec2_dot(vec2_t v, vec2_t u);                            // return v.x * u.x + v.y * u.y
-f32    vec2_angle_between(vec2_t v, vec2_t u);                  // return arccos(vec2_dot(v,u)/(length(v)*length(u)))
-f32    vec2_dist_sqr(vec2_t v, vec2_t u);                       // return dist(u,v) * dist(u,v)
-f32    vec2_length_sqr(vec2_t v);                               // return length(v) * length(v)
-f32    vec2_lp_norm(vec2_t v, f32 p);                           // return (v.x ^ p + v.y ^ p) ^ (1/p)
-f32    vec2_lp_norm_to_the_pth(vec2_t v, f32 p);                // return (v.x ^ p + v.y ^ p) 
-f32    vec2_max(vec2_t v);                                      // return max(v.x, v.y)
-f32    vec2_min(vec2_t v);                                      // return min(v.x, v.y)
-f32    vec2_avg(vec2_t v);                                      // return avarage(v.x, v.y)
+vec2_t vec2_v(const f32 v);                                           // return vec2(val, val)
+vec2_t vec2_neg(const vec2_t v);                                      // return vec2(-v.x, -v.y)
+vec2_t vec2_clamp(const vec2_t v, const vec2_t m, const vec2_t M);                // return vec2(fclamp(v.x, m.x, M.x), fclamp(v.x, m.x, M.x))
+vec2_t vec2_add(const vec2_t v1, const vec2_t v2);                          // return vec2(v1.x + v2.x, v1.y+ v2.y)
+vec2_t vec2_sub(const vec2_t v1, const vec2_t v2);                          // return vec2(v1.x- v2.x, v1.y - v2.y)
+vec2_t vec2_mul(const vec2_t v1, const vec2_t v2);                          // return vec2(v1.x*v2.x, v1.y*v2.y)
+vec2_t vec2_div(const vec2_t v1, const vec2_t v2);                          // return vec2(v1.x/v2.x, v1.y/v2.y)
+vec2_t vec2_add_v(const vec2_t v, const f32 val);                           // return vec2(v.x + val, v.y + val)
+vec2_t vec2_sub_v(const vec2_t v, const f32 val);                           // return vec2(v.x - val, v.y - val)
+vec2_t vec2_mul_v(const vec2_t v, const f32 val);                           // return vec2(v.x * val, v.y * val)
+vec2_t vec2_div_v(const vec2_t v, const f32 val);                           // return vec2(v.x / val, v.y / val)
+vec2_t vec2_activate(const vec2_t v, f32 (*activation_func)(f32));    // return vec2(f(v.x), f(v.y))
+vec2_t vec2_normalize(const vec2_t v);                                // return v / Length(v)
+vec2_t vec2_abs(const vec2_t v);                                      // return vec2(abs(v.x), abs(v.y))
+vec2_t vec2_lerp(const vec2_t a, const vec2_t b, const vec2_t t);                 // return a + (b - a) * t
+vec2_t vec2_slerp(const vec2_t a, const vec2_t b, const vec2_t t);                // return a * cos(vec2_angle_between(a,b) * t) + (b - a * vec2_dot(a,b)) * sin(vec2_angle_between(a,b) * t)
+vec2_t vec2_linear_comb(const vec2_t v, const vec2_t u, const f32 a1, const f32 a2);    // return a1 * v1 + a2 * v2
+vec2_t vec2_transform(const vec2_t v, const mat2x2_t M);                    // return M * v as matrix mult
+vec2_t vec2_from_angle(const f32 alpha);                              // return vec2(cos(alpha),sin(alpha))
+vec2_t vec2_from_angle_and_r(const f32 alpha, const f32 radius);            // return vec2(r * cos(alpha), r * sin(alpha))
+f32    vec2_length(const vec2_t v);                                   // return sqrt(v.x * v.x + v.y * v.y)
+f32    vec2_dist(const vec2_t v, const vec2_t u);                           // return length(v-u) 
+f32    vec2_dot(const vec2_t v, const vec2_t u);                            // return v.x * u.x + v.y * u.y
+f32    vec2_angle_between(const vec2_t v, const vec2_t u);                  // return arccos(vec2_dot(v,u)/(length(v)*length(u)))
+f32    vec2_dist_sqr(const vec2_t v, const vec2_t u);                       // return dist(u,v) * dist(u,v)
+f32    vec2_length_sqr(const vec2_t v);                               // return length(v) * length(v)
+f32    vec2_lp_norm(const vec2_t v, const f32 p);                           // return (v.x ^ p + v.y ^ p) ^ (1/p)
+f32    vec2_lp_norm_to_the_pth(const vec2_t v, const f32 p);                // return (v.x ^ p + v.y ^ p) 
+f32    vec2_max(const vec2_t v);                                      // return max(v.x, v.y)
+f32    vec2_min(const vec2_t v);                                      // return min(v.x, v.y)
+f32    vec2_avg(const vec2_t v);                                      // return avarage(v.x, v.y)
 
 // for each (iter in v) ... usage: vec2_foreach(v, it) { printf("Before: %f\n",it); it = 3.1415F; printf("After: &%f\n", it); } 
 #define vec2_foreach(v, iter) \
@@ -104,47 +108,47 @@ f32    vec2_avg(vec2_t v);                                      // return avarag
 #define VEC3_PRINT_FMT "(%f, %f, %f)"
 #define VEC3_TO_PRINT_FMT(v) (v).x, (v).y, (v).z
 
-vec3_t * vec3_allocate(f32 x, f32 y, f32 z, void* (*allocator)(size_t));        // allocate new vec3(x, y, z) if allocator NULL then uses malloc, caller must free
-vec3_t vec3(f32 x, f32 y, f32 z);
+vec3_t * vec3_allocate(const f32 x, const f32 y, const f32 z, void* (*allocator)(size_t));        // allocate new vec3(x, y, z) if allocator NULL then uses malloc, caller must free
+vec3_t vec3(const f32 x, const f32 y, const f32 z);
 vec3_t vec3_0(void);                                                            // return vec3(0, 0, 0)
 vec3_t vec3_1(void);                                                            // return vec3(1, 1, 1)
-vec3_t vec3_v(f32 val);                                                         // return vec3(val, val, val)
+vec3_t vec3_v(const f32 val);                                                         // return vec3(val, val, val)
 vec3_t vec3_e1(void);                                                           // return vec3(1, 0, 0)
 vec3_t vec3_e2(void);                                                           // return vec3(0, 1, 0)
 vec3_t vec3_e3(void);                                                           // return vec3(0, 0, 1)
-vec3_t vec3_neg(vec3_t v);                                                      // return -v
-vec3_t vec3_clamp(vec3_t v, vec3_t m, vec3_t M);                                // return vec3(fclamp(v.x, m.x, M.x), fclamp(v.y, m.y, M.y), fclamp(v.z, m.z, M.z))
-vec3_t vec3_add(vec3_t v, vec3_t u);                                            // return vec3(v.x + u.x, v.y + u.y, v.z + u.z)
-vec3_t vec3_sub(vec3_t v, vec3_t u);                                            // return vec3(v.x - u.x, v.y - u.y, v.z - u.z)
-vec3_t vec3_mul(vec3_t v, vec3_t u);                                            // return vec3(v.x * u.x, v.y * u.y, v.z * u.z)
-vec3_t vec3_div(vec3_t v, vec3_t u);                                            // return vec3(v.x / u.x, v.y / u.y, v.z / u.z)
-vec3_t vec3_add_v(vec3_t v, f32 val);                                           // return vec3(v.x + val, v.y + val, v.z + val)
-vec3_t vec3_sub_v(vec3_t v, f32 val);                                           // return vec3(v.x - val, v.y - val, v.z - val)
-vec3_t vec3_mul_v(vec3_t v, f32 val);                                           // return vec3(v.x * val, v.y * val, v.z * val)
-vec3_t vec3_div_v(vec3_t v, f32 val);                                           // return vec3(v.x / val, v.y / val, v.z / val)
-vec3_t vec3_activate(vec3_t v, f32 (*activation_func)(f32));                    // return vec3(func(v.x), func(v.y), func(v.z))
-vec3_t vec3_normalize(vec3_t v);                                                // return v / vec3_length(v)
-vec3_t vec3_abs(vec3_t v);                                                      // return vec3(abs(v.x), abs(v.y), abs(v.z))
-vec3_t vec3_lerp(vec3_t a, vec3_t b, vec3_t t);                                 // return a + (b - a) * t
-vec3_t vec3_slerp(vec3_t a, vec3_t b, vec3_t t);                                // return a * cos(vec3_angle_between(a,b) * t) + (b - a * vec3_dot(a,b)) * sin(vec3_angle_between(a,b) * t)
-vec3_t vec3_linear_comb2(vec3_t v, vec3_t u, f32 a1, f32 a2);                   // return v * a1 + u * a2
-vec3_t vec3_linear_comb3(vec3_t v, vec3_t u, vec3_t w, f32 a1, f32 a2, f32 a3); // return v * a1 + u * a2 + w * a3
-vec3_t vec3_transform(vec3_t v, mat3x3_t M);                                    // return M * v (matrix mult)              
-vec3_t vec3_from_angle(f32 alpha, f32 gamma);                                   // return vec3(cos(alpha) * sin(gamma), sin(alpha) * sin(gamma), cos(gamma))
-vec3_t vec3_from_angle_and_r(f32 alpha, f32 gamma, f32 radius);                 // return vec3_from_angle(alpha, gamma) * radius
-vec3_t vec3_cross(vec3_t v, vec3_t u);                                          // return v * u as cross product 
-vec3_t vec3_cross_normalize(vec3_t v, vec3_t u);                                // return vec3_cross(v, u) / vec3_length(vec3_cross(v, u)) 
-f32    vec3_length(vec3_t v);                                                   // return sqrt(v.x * v.x + v.y * v.y + v.z * v.z)
-f32    vec3_dist(vec3_t v, vec3_t u);                                           // return vec3_length(v - u)
-f32    vec3_dot(vec3_t v, vec3_t u);                                            // return v.x * u.x + v.y * u.y + v.z * u.z
-f32    vec3_angle_between(vec3_t v, vec3_t u);                                  // return arccos(vec3_dot(v,u)/(vec3_length(v) * vec3_length(u)))
-f32    vec3_dist_sqr(vec3_t v, vec3_t u);                                       // return vec3_dist(v,u) * vec3_dist(v,u)
-f32    vec3_length_sqr(vec3_t v);                                               // return vec3_length(v) * vec3_length(v)
-f32    vec3_lp_norm(vec3_t v, f32 p);                                           // return pow(sum(pow(v.as_arr[i], p)), 1 / p)
-f32    vec3_lp_norm_to_the_pth(vec3_t v, f32 p);                                // return pow(vec3_lp_norm(v, p), p)
-f32    vec3_max(vec3_t v);                                                      // return max(v.x, v.y, v.z)
-f32    vec3_min(vec3_t v);                                                      // return min(v.x, v.y, v.z)
-f32    vec3_avg(vec3_t v);                                                      // return avarage(v.x, v.y, v.z)
+vec3_t vec3_neg(const vec3_t v);                                                      // return -v
+vec3_t vec3_clamp(const vec3_t v, const vec3_t m, const vec3_t M);                                // return vec3(fclamp(v.x, m.x, M.x), fclamp(v.y, m.y, M.y), fclamp(v.z, m.z, M.z))
+vec3_t vec3_add(const vec3_t v, const vec3_t u);                                            // return vec3(v.x + u.x, v.y + u.y, v.z + u.z)
+vec3_t vec3_sub(const vec3_t v, const vec3_t u);                                            // return vec3(v.x - u.x, v.y - u.y, v.z - u.z)
+vec3_t vec3_mul(const vec3_t v, const vec3_t u);                                            // return vec3(v.x * u.x, v.y * u.y, v.z * u.z)
+vec3_t vec3_div(const vec3_t v, const vec3_t u);                                            // return vec3(v.x / u.x, v.y / u.y, v.z / u.z)
+vec3_t vec3_add_v(const vec3_t v, const f32 val);                                           // return vec3(v.x + val, v.y + val, v.z + val)
+vec3_t vec3_sub_v(const vec3_t v, const f32 val);                                           // return vec3(v.x - val, v.y - val, v.z - val)
+vec3_t vec3_mul_v(const vec3_t v, const f32 val);                                           // return vec3(v.x * val, v.y * val, v.z * val)
+vec3_t vec3_div_v(const vec3_t v, const f32 val);                                           // return vec3(v.x / val, v.y / val, v.z / val)
+vec3_t vec3_activate(const vec3_t v, f32 (*activation_func)(f32));                    // return vec3(func(v.x), func(v.y), func(v.z))
+vec3_t vec3_normalize(const vec3_t v);                                                // return v / vec3_length(v)
+vec3_t vec3_abs(const vec3_t v);                                                      // return vec3(abs(v.x), abs(v.y), abs(v.z))
+vec3_t vec3_lerp(const vec3_t a, const vec3_t b, const vec3_t t);                                 // return a + (b - a) * t
+vec3_t vec3_slerp(const vec3_t a, const vec3_t b, const vec3_t t);                                // return a * cos(vec3_angle_between(a,b) * t) + (b - a * vec3_dot(a,b)) * sin(vec3_angle_between(a,b) * t)
+vec3_t vec3_linear_comb2(const vec3_t v, const vec3_t u, const f32 a1, const f32 a2);                   // return v * a1 + u * a2
+vec3_t vec3_linear_comb3(const vec3_t v, const vec3_t u, const vec3_t w, const f32 a1, const f32 a2, const f32 a3); // return v * a1 + u * a2 + w * a3
+vec3_t vec3_transform(const vec3_t v, const mat3x3_t M);                                    // return M * v (matrix mult)              
+vec3_t vec3_from_angle(const f32 alpha, const f32 gamma);                                   // return vec3(cos(alpha) * sin(gamma), sin(alpha) * sin(gamma), cos(gamma))
+vec3_t vec3_from_angle_and_r(const f32 alpha, const f32 gamma, const f32 radius);                 // return vec3_from_angle(alpha, gamma) * radius
+vec3_t vec3_cross(const vec3_t v, const vec3_t u);                                          // return v * u as cross product 
+vec3_t vec3_cross_normalize(const vec3_t v, const vec3_t u);                                // return vec3_cross(v, u) / vec3_length(vec3_cross(v, u)) 
+f32    vec3_length(const vec3_t v);                                                   // return sqrt(v.x * v.x + v.y * v.y + v.z * v.z)
+f32    vec3_dist(const vec3_t v, const vec3_t u);                                           // return vec3_length(v - u)
+f32    vec3_dot(const vec3_t v, const vec3_t u);                                            // return v.x * u.x + v.y * u.y + v.z * u.z
+f32    vec3_angle_between(const vec3_t v, const vec3_t u);                                  // return arccos(vec3_dot(v,u)/(vec3_length(v) * vec3_length(u)))
+f32    vec3_dist_sqr(const vec3_t v, const vec3_t u);                                       // return vec3_dist(v,u) * vec3_dist(v,u)
+f32    vec3_length_sqr(const vec3_t v);                                               // return vec3_length(v) * vec3_length(v)
+f32    vec3_lp_norm(const vec3_t v, const f32 p);                                           // return pow(sum(pow(v.as_arr[i], p)), 1 / p)
+f32    vec3_lp_norm_to_the_pth(const vec3_t v, const f32 p);                                // return pow(vec3_lp_norm(v, p), p)
+f32    vec3_max(const vec3_t v);                                                      // return max(v.x, v.y, v.z)
+f32    vec3_min(const vec3_t v);                                                      // return min(v.x, v.y, v.z)
+f32    vec3_avg(const vec3_t v);                                                      // return avarage(v.x, v.y, v.z)
 
 // for each (iter in v) ... usage: vec3_foreach(v, it) { printf("Before: %f\n",it); it = PI; printf("After: &%f\n", it); } 
 #define vec3_foreach(v, iter) \
@@ -154,6 +158,16 @@ f32    vec3_avg(vec3_t v);                                                      
 // =========================================================
 //                      Vector 4
 // =========================================================
+
+vec4_t * vec4_allocate(const f32 x, const f32 y, const f32 z, const f32 w, void* (*allocator)(size_t));
+vec4_t vec4(const f32 x, const f32 y, const f32 z, const f32 w);
+vec4_t vec4_0(void);
+vec4_t vec4_1(void);
+vec4_t vec4_v(const f32 val);
+vec4_t vec4_e1(void);
+vec4_t vec4_e2(void);
+vec4_t vec4_e3(void);
+vec4_t vec4_e4(void);
 
 // =========================================================
 //                      Vector
@@ -182,9 +196,13 @@ f32    vec3_avg(vec3_t v);                                                      
 //                      IMPLEMENTATION
 // =========================================================
 #if defined(DMATH_IMPLEMENTATION) || 1
-#include <stdlib.h> // malloc
 
-inline f32 fclamp(f32 x, f32 min_x, f32 max_x)
+#if !defined(DMATH_NO_STDLIB)
+#include <stdlib.h> // malloc
+#endif
+
+#if !defined(DMATH_NO_BYTE_ARITHMETIC)
+inline f32 fclamp(const f32 x, const f32 min_x, const f32 max_x)
 {
     f32 result = 0.0F;
 
@@ -194,7 +212,7 @@ inline f32 fclamp(f32 x, f32 min_x, f32 max_x)
     return result;
 }
 
-inline f32 flerp(f32 a, f32 b, f32 t)
+inline f32 flerp(const f32 a, const f32 b, const f32 t)
 {
     f32 result = 0.0F;
 
@@ -203,7 +221,7 @@ inline f32 flerp(f32 a, f32 b, f32 t)
     return result;
 }
 
-u32 u32_pack_bytes(u8 msb, u8 msb2, u8 lsb2, u8 lsb)
+u32 u32_pack_bytes(const u8 msb, const u8 msb2, const u8 lsb2, const u8 lsb)
 {
     u32 result = 0UL;
 
@@ -215,7 +233,7 @@ u32 u32_pack_bytes(u8 msb, u8 msb2, u8 lsb2, u8 lsb)
     return result;
 }
 
-inline u8 u8_min(u8 a, u8 b)
+inline u8 u8_min(const u8 a, const u8 b)
 {
     u8 result = 0U;
 
@@ -224,7 +242,7 @@ inline u8 u8_min(u8 a, u8 b)
     return result;
 }
 
-inline u8 u8_max(u8 a, u8 b)
+inline u8 u8_max(const u8 a, const u8 b)
 {
     u8 result = 0U;
 
@@ -233,7 +251,7 @@ inline u8 u8_max(u8 a, u8 b)
     return result;
 }
 
-inline u8 u8_clamp(u8 x, u8 m, u8 M)
+inline u8 u8_clamp(const u8 x, const u8 m, const u8 M)
 {
     u8 result = 0U;
 
@@ -245,7 +263,7 @@ inline u8 u8_clamp(u8 x, u8 m, u8 M)
     return result;
 }
 
-inline u8 u8_bit_at(u8 byte, u8 where)
+inline u8 u8_bit_at(const u8 byte, const u8 where)
 {
     u8 result = 0U;
 
@@ -254,7 +272,7 @@ inline u8 u8_bit_at(u8 byte, u8 where)
     return result;
 }
 
-inline u8 u8_unpack_byte_32(u32 bytes, u8 where)
+inline u8 u8_unpack_byte_32(const u32 bytes, const u8 where)
 {
     u8 result = 0U;
 
@@ -265,7 +283,7 @@ inline u8 u8_unpack_byte_32(u32 bytes, u8 where)
     return result;
 }
 
-inline u8 u8_unpack_byte_64(u64 bytes, u8 where)
+inline u8 u8_unpack_byte_64(const u64 bytes, const u8 where)
 {
     u8 result = 0U;
 
@@ -276,11 +294,18 @@ inline u8 u8_unpack_byte_64(u64 bytes, u8 where)
     return result;
 }
 
+#endif
+
 #if !defined(DMATH_DEFINTIONS_NO_LINEAR_ALGEBRA)
 
-inline vec2_t *vec2_allocate(f32 x, f32 y, void *(*allocator)(size_t))
+inline vec2_t *vec2_allocate(const f32 x, const f32 y, void *(*allocator)(size_t))
 {
-    void * (*A)(size_t) = allocator != NULL ? allocator : malloc;
+    #if defined(DMATH_NO_STDLIB)
+        if (!allocator) return NULL;
+        void* (*A)(size_t) = allocator;
+    #else
+        void * (*A)(size_t) = allocator != NULL ? allocator : malloc;
+    #endif
     
     void * block = A(sizeof(vec2_t));
     if (!block) return NULL;
@@ -292,7 +317,7 @@ inline vec2_t *vec2_allocate(f32 x, f32 y, void *(*allocator)(size_t))
     return result;
 }
 
-inline vec2_t vec2(f32 x, f32 y)
+inline vec2_t vec2(const f32 x, const f32 y)
 {
     vec2_t result = { 0 };
 
@@ -339,7 +364,7 @@ inline vec2_t vec2_e2(void)
     return result;
 }
 
-inline vec2_t vec2_v(f32 v)
+inline vec2_t vec2_v(const f32 v)
 {
     vec2_t result = { 0 };
 
@@ -349,7 +374,7 @@ inline vec2_t vec2_v(f32 v)
     return result;
 }
 
-inline vec2_t vec2_neg(vec2_t v)
+inline vec2_t vec2_neg(const vec2_t v)
 {
     vec2_t result= { 0 };
 
@@ -359,7 +384,7 @@ inline vec2_t vec2_neg(vec2_t v)
     return result;
 }
 
-inline vec2_t vec2_clamp(vec2_t v, vec2_t m, vec2_t M)
+inline vec2_t vec2_clamp(const vec2_t v, const vec2_t m, const vec2_t M)
 {
     vec2_t result = { 0 };
 
@@ -369,7 +394,7 @@ inline vec2_t vec2_clamp(vec2_t v, vec2_t m, vec2_t M)
     return result;
 }
 
-inline vec2_t vec2_add(vec2_t v1, vec2_t v2)
+inline vec2_t vec2_add(const vec2_t v1, const vec2_t v2)
 {
     vec2_t result = { 0 };
 
@@ -379,7 +404,7 @@ inline vec2_t vec2_add(vec2_t v1, vec2_t v2)
     return result;
 }
 
-inline vec2_t vec2_sub(vec2_t v1, vec2_t v2)
+inline vec2_t vec2_sub(const vec2_t v1, const vec2_t v2)
 {
     vec2_t result = { 0 };
 
@@ -389,7 +414,7 @@ inline vec2_t vec2_sub(vec2_t v1, vec2_t v2)
     return result;
 }
 
-inline vec2_t vec2_mul(vec2_t v1, vec2_t v2)
+inline vec2_t vec2_mul(const vec2_t v1, const vec2_t v2)
 {
     vec2_t result = { 0 };
 
@@ -399,7 +424,7 @@ inline vec2_t vec2_mul(vec2_t v1, vec2_t v2)
     return result;
 }
 
-inline vec2_t vec2_div(vec2_t v1, vec2_t v2)
+inline vec2_t vec2_div(const vec2_t v1, const vec2_t v2)
 {
     vec2_t result = { 0 };
 
@@ -412,7 +437,7 @@ inline vec2_t vec2_div(vec2_t v1, vec2_t v2)
     return result;
 }
 
-inline vec2_t vec2_add_v(vec2_t v, f32 val)
+inline vec2_t vec2_add_v(const vec2_t v, const f32 val)
 {
     vec2_t result = { 0 };
 
@@ -422,7 +447,7 @@ inline vec2_t vec2_add_v(vec2_t v, f32 val)
     return result;
 }
 
-inline vec2_t vec2_sub_v(vec2_t v, f32 val)
+inline vec2_t vec2_sub_v(const vec2_t v, const f32 val)
 {
     vec2_t result = { 0 };
 
@@ -432,7 +457,7 @@ inline vec2_t vec2_sub_v(vec2_t v, f32 val)
     return result;
 }
 
-inline vec2_t vec2_mul_v(vec2_t v, f32 val)
+inline vec2_t vec2_mul_v(const vec2_t v, const f32 val)
 {
     vec2_t result = { 0 };
 
@@ -442,7 +467,7 @@ inline vec2_t vec2_mul_v(vec2_t v, f32 val)
     return result;
 }
 
-inline vec2_t vec2_div_v(vec2_t v, f32 val)
+inline vec2_t vec2_div_v(const vec2_t v, const f32 val)
 {
     vec2_t result = { 0 };
 
@@ -454,7 +479,7 @@ inline vec2_t vec2_div_v(vec2_t v, f32 val)
     return result;
 }
 
-inline vec2_t vec2_activate(vec2_t v, f32 (*activation_func)(f32))
+inline vec2_t vec2_activate(const vec2_t v, f32 (*activation_func)(f32))
 {
     vec2_t result = { 0 };
 
@@ -466,7 +491,7 @@ inline vec2_t vec2_activate(vec2_t v, f32 (*activation_func)(f32))
     return result;
 }
 
-inline vec2_t vec2_normalize(vec2_t v)
+inline vec2_t vec2_normalize(const vec2_t v)
 {
     vec2_t result = { 0 };
 
@@ -481,7 +506,7 @@ inline vec2_t vec2_normalize(vec2_t v)
     return result;
 }
 
-inline vec2_t vec2_abs(vec2_t v)
+inline vec2_t vec2_abs(const vec2_t v)
 {
     vec2_t result = { 0 };
 
@@ -491,7 +516,7 @@ inline vec2_t vec2_abs(vec2_t v)
     return result;
 }
 
-inline vec2_t vec2_lerp(vec2_t a, vec2_t b, vec2_t t)
+inline vec2_t vec2_lerp(const vec2_t a, const vec2_t b, const vec2_t t)
 {
     vec2_t result = { 0 };
 
@@ -501,7 +526,7 @@ inline vec2_t vec2_lerp(vec2_t a, vec2_t b, vec2_t t)
     return result;
 }
 
-inline vec2_t vec2_slerp(vec2_t a, vec2_t b, vec2_t t)
+inline vec2_t vec2_slerp(const vec2_t a, const vec2_t b, const vec2_t t)
 {
     vec2_t result = { 0 };
 
@@ -522,7 +547,7 @@ inline vec2_t vec2_slerp(vec2_t a, vec2_t b, vec2_t t)
     return result;
 }
 
-inline vec2_t vec2_linear_comb(vec2_t v, vec2_t u, f32 a1, f32 a2)
+inline vec2_t vec2_linear_comb(const vec2_t v, const vec2_t u, const f32 a1, const f32 a2)
 {
     vec2_t result = { 0 };
 
@@ -532,7 +557,7 @@ inline vec2_t vec2_linear_comb(vec2_t v, vec2_t u, f32 a1, f32 a2)
     return result;
 }
 
-inline vec2_t vec2_transform(vec2_t v, mat2x2_t M)
+inline vec2_t vec2_transform(const vec2_t v, const mat2x2_t M)
 {
     vec2_t result = { 0 };
 
@@ -542,7 +567,7 @@ inline vec2_t vec2_transform(vec2_t v, mat2x2_t M)
     return result;
 }
 
-inline vec2_t vec2_from_angle(f32 alpha)
+inline vec2_t vec2_from_angle(const f32 alpha)
 {
     vec2_t result = { 0 };
 
@@ -552,7 +577,7 @@ inline vec2_t vec2_from_angle(f32 alpha)
     return result;
 }
 
-inline vec2_t vec2_from_angle_and_r(f32 alpha, f32 radius)
+inline vec2_t vec2_from_angle_and_r(const f32 alpha, const f32 radius)
 {
     vec2_t result = { 0 };
 
@@ -562,7 +587,7 @@ inline vec2_t vec2_from_angle_and_r(f32 alpha, f32 radius)
     return result;
 }
 
-inline f32 vec2_length(vec2_t v)
+inline f32 vec2_length(const vec2_t v)
 {
     f32 result = 0;
 
@@ -572,7 +597,7 @@ inline f32 vec2_length(vec2_t v)
     return result;
 }
 
-inline f32 vec2_dist(vec2_t v, vec2_t u)
+inline f32 vec2_dist(const vec2_t v, const vec2_t u)
 {
     f32 result = 0;
 
@@ -584,7 +609,7 @@ inline f32 vec2_dist(vec2_t v, vec2_t u)
     return result;
 }
 
-inline f32 vec2_dot(vec2_t v, vec2_t u)
+inline f32 vec2_dot(const vec2_t v, const vec2_t u)
 {
     f32 result = 0.0F;
 
@@ -593,7 +618,7 @@ inline f32 vec2_dot(vec2_t v, vec2_t u)
     return result;
 }
 
-inline f32 vec2_angle_between(vec2_t v, vec2_t u)
+inline f32 vec2_angle_between(const vec2_t v, const vec2_t u)
 {
     f32 result = 0.0F;
 
@@ -609,7 +634,7 @@ inline f32 vec2_angle_between(vec2_t v, vec2_t u)
     return result;
 }
 
-inline f32 vec2_dist_sqr(vec2_t v, vec2_t u)
+inline f32 vec2_dist_sqr(const vec2_t v, const vec2_t u)
 {
     f32 result = 0.0F;
 
@@ -621,7 +646,7 @@ inline f32 vec2_dist_sqr(vec2_t v, vec2_t u)
     return result;
 }
 
-inline f32 vec2_length_sqr(vec2_t v)
+inline f32 vec2_length_sqr(const vec2_t v)
 {
     f32 result = 0.0F;
 
@@ -630,7 +655,7 @@ inline f32 vec2_length_sqr(vec2_t v)
     return result;
 }
 
-inline f32 vec2_lp_norm(vec2_t v, f32 p)
+inline f32 vec2_lp_norm(const vec2_t v, const f32 p)
 {
     f32 result = 0.0F;
 
@@ -644,7 +669,7 @@ inline f32 vec2_lp_norm(vec2_t v, f32 p)
     return result;
 }
 
-inline f32 vec2_lp_norm_to_the_pth(vec2_t v, f32 p)
+inline f32 vec2_lp_norm_to_the_pth(const vec2_t v, const f32 p)
 {
     f32 result = 0.0F;
 
@@ -658,7 +683,7 @@ inline f32 vec2_lp_norm_to_the_pth(vec2_t v, f32 p)
     return result;
 }
 
-inline f32 vec2_max(vec2_t v)
+inline f32 vec2_max(const vec2_t v)
 {
     f32 result = 0.0F;
 
@@ -667,7 +692,7 @@ inline f32 vec2_max(vec2_t v)
     return result;
 }
 
-inline f32 vec2_min(vec2_t v)
+inline f32 vec2_min(const vec2_t v)
 {
     f32 result = 0.0F;
 
@@ -676,7 +701,7 @@ inline f32 vec2_min(vec2_t v)
     return result;
 }
 
-inline f32 vec2_avg(vec2_t v)
+inline f32 vec2_avg(const vec2_t v)
 {
     f32 result = 0.0F;
 
@@ -685,9 +710,14 @@ inline f32 vec2_avg(vec2_t v)
     return result;
 }
 
-inline vec3_t *vec3_allocate(f32 x, f32 y, f32 z, void *(*allocator)(size_t))
+inline vec3_t *vec3_allocate(const f32 x, const f32 y, const f32 z, void *(*allocator)(size_t))
 {
-    void* (*A)(size_t) = allocator ? allocator : malloc;
+    #if defined(DMATH_NO_STDLIB)
+        if (!allocator) return NULL;
+        void* (*A)(size_t) = allocator;
+    #else
+        void * (*A)(size_t) = allocator != NULL ? allocator : malloc;
+    #endif
     void* block = A(sizeof(vec3_t));
     if (!block) return NULL;
 
@@ -700,7 +730,7 @@ inline vec3_t *vec3_allocate(f32 x, f32 y, f32 z, void *(*allocator)(size_t))
     return result;
 }
 
-inline vec3_t vec3(f32 x, f32 y, f32 z)
+inline vec3_t vec3(const f32 x, const f32 y, const f32 z)
 {
     vec3_t result = { 0 };
 
@@ -729,7 +759,7 @@ inline vec3_t vec3_1(void)
     return result;
 }
 
-inline vec3_t vec3_v(f32 val)
+inline vec3_t vec3_v(const f32 val)
 {
     vec3_t result = { 0 };
 
@@ -773,7 +803,7 @@ inline vec3_t vec3_e3(void)
     return result;
 }
 
-inline vec3_t vec3_neg(vec3_t v)
+inline vec3_t vec3_neg(const vec3_t v)
 {
     vec3_t result = { 0 };
 
@@ -784,7 +814,7 @@ inline vec3_t vec3_neg(vec3_t v)
     return result;
 }
 
-inline vec3_t vec3_clamp(vec3_t v, vec3_t m, vec3_t M)
+inline vec3_t vec3_clamp(const vec3_t v, const vec3_t m, const vec3_t M)
 {
     vec3_t result = { 0 };
 
@@ -795,7 +825,7 @@ inline vec3_t vec3_clamp(vec3_t v, vec3_t m, vec3_t M)
     return result;
 }
 
-inline vec3_t vec3_add(vec3_t v, vec3_t u)
+inline vec3_t vec3_add(const vec3_t v, const vec3_t u)
 {
     vec3_t result = { 0 };
 
@@ -806,7 +836,7 @@ inline vec3_t vec3_add(vec3_t v, vec3_t u)
     return result;
 }
 
-inline vec3_t vec3_sub(vec3_t v, vec3_t u)
+inline vec3_t vec3_sub(const vec3_t v, const vec3_t u)
 {
     vec3_t result = { 0 };
 
@@ -817,7 +847,7 @@ inline vec3_t vec3_sub(vec3_t v, vec3_t u)
     return result;
 }
 
-inline vec3_t vec3_mul(vec3_t v, vec3_t u)
+inline vec3_t vec3_mul(const vec3_t v, const vec3_t u)
 {
     vec3_t result = { 0 };
 
@@ -828,7 +858,7 @@ inline vec3_t vec3_mul(vec3_t v, vec3_t u)
     return result;
 }
 
-inline vec3_t vec3_div(vec3_t v, vec3_t u)
+inline vec3_t vec3_div(const vec3_t v, const vec3_t u)
 {
     vec3_t result = { 0 };
 
@@ -843,7 +873,7 @@ inline vec3_t vec3_div(vec3_t v, vec3_t u)
     return result;
 }
 
-inline vec3_t vec3_add_v(vec3_t v, f32 val)
+inline vec3_t vec3_add_v(const vec3_t v, const f32 val)
 {
     vec3_t result = { 0 };
 
@@ -854,7 +884,7 @@ inline vec3_t vec3_add_v(vec3_t v, f32 val)
     return result;
 }
 
-inline vec3_t vec3_sub_v(vec3_t v, f32 val)
+inline vec3_t vec3_sub_v(const vec3_t v, const f32 val)
 {
     vec3_t result = { 0 };
 
@@ -865,7 +895,7 @@ inline vec3_t vec3_sub_v(vec3_t v, f32 val)
     return result;
 }
 
-inline vec3_t vec3_mul_v(vec3_t v, f32 val)
+inline vec3_t vec3_mul_v(const vec3_t v, const f32 val)
 {
     vec3_t result = { 0 };
 
@@ -876,7 +906,7 @@ inline vec3_t vec3_mul_v(vec3_t v, f32 val)
     return result;
 }
 
-inline vec3_t vec3_div_v(vec3_t v, f32 val)
+inline vec3_t vec3_div_v(const vec3_t v, const f32 val)
 {
     vec3_t result = { 0 };
 
@@ -889,7 +919,7 @@ inline vec3_t vec3_div_v(vec3_t v, f32 val)
     return result;
 }
 
-inline vec3_t vec3_activate(vec3_t v, f32 (*activation_func)(f32))
+inline vec3_t vec3_activate(const vec3_t v, f32 (*activation_func)(f32))
 {
     vec3_t result = { 0 };
 
@@ -902,7 +932,7 @@ inline vec3_t vec3_activate(vec3_t v, f32 (*activation_func)(f32))
     return result;
 }
 
-inline vec3_t vec3_normalize(vec3_t v)
+inline vec3_t vec3_normalize(const vec3_t v)
 {
     vec3_t result = { 0 };
 
@@ -916,7 +946,7 @@ inline vec3_t vec3_normalize(vec3_t v)
     return result;
 }
 
-inline vec3_t vec3_abs(vec3_t v)
+inline vec3_t vec3_abs(const vec3_t v)
 {
     vec3_t result = { 0 };
 
@@ -927,7 +957,7 @@ inline vec3_t vec3_abs(vec3_t v)
     return result;
 }
 
-inline vec3_t vec3_lerp(vec3_t a, vec3_t b, vec3_t t)
+inline vec3_t vec3_lerp(const vec3_t a, const vec3_t b, const vec3_t t)
 {
     vec3_t result = { 0 };
 
@@ -938,7 +968,7 @@ inline vec3_t vec3_lerp(vec3_t a, vec3_t b, vec3_t t)
     return result;
 }
 
-inline vec3_t vec3_slerp(vec3_t a, vec3_t b, vec3_t t)
+inline vec3_t vec3_slerp(const vec3_t a, const vec3_t b, const vec3_t t)
 {
     vec3_t result = { 0 };
 
@@ -960,7 +990,7 @@ inline vec3_t vec3_slerp(vec3_t a, vec3_t b, vec3_t t)
     return result;
 }
 
-inline vec3_t vec3_linear_comb2(vec3_t v, vec3_t u, f32 a1, f32 a2)
+inline vec3_t vec3_linear_comb2(const vec3_t v, const vec3_t u, const f32 a1, const f32 a2)
 {
     vec3_t result = { 0 };
 
@@ -971,7 +1001,7 @@ inline vec3_t vec3_linear_comb2(vec3_t v, vec3_t u, f32 a1, f32 a2)
     return result;
 }
 
-inline vec3_t vec3_linear_comb3(vec3_t v, vec3_t u, vec3_t w, f32 a1, f32 a2, f32 a3)
+inline vec3_t vec3_linear_comb3(const vec3_t v, const vec3_t u, const vec3_t w, const f32 a1, const f32 a2, const f32 a3)
 {
     vec3_t result = { 0 };
 
@@ -982,7 +1012,7 @@ inline vec3_t vec3_linear_comb3(vec3_t v, vec3_t u, vec3_t w, f32 a1, f32 a2, f3
     return result;
 }
 
-inline vec3_t vec3_transform(vec3_t v, mat3x3_t M)
+inline vec3_t vec3_transform(const vec3_t v, const mat3x3_t M)
 {
     vec3_t result = { 0 };
 
@@ -993,7 +1023,7 @@ inline vec3_t vec3_transform(vec3_t v, mat3x3_t M)
     return result;
 }
 
-inline vec3_t vec3_from_angle(f32 alpha, f32 gamma)
+inline vec3_t vec3_from_angle(const f32 alpha, const f32 gamma)
 {
     vec3_t result = { 0 };
 
@@ -1009,7 +1039,7 @@ inline vec3_t vec3_from_angle(f32 alpha, f32 gamma)
     return result;
 }
 
-inline vec3_t vec3_from_angle_and_r(f32 alpha, f32 gamma, f32 radius)
+inline vec3_t vec3_from_angle_and_r(const f32 alpha, const f32 gamma, const f32 radius)
 {
     vec3_t result = { 0 };
 
@@ -1025,7 +1055,7 @@ inline vec3_t vec3_from_angle_and_r(f32 alpha, f32 gamma, f32 radius)
     return result;
 }
 
-inline vec3_t vec3_cross(vec3_t v, vec3_t u)
+inline vec3_t vec3_cross(const vec3_t v, const vec3_t u)
 {
     vec3_t result = { 0 };
 
@@ -1036,7 +1066,7 @@ inline vec3_t vec3_cross(vec3_t v, vec3_t u)
     return result;
 }
 
-inline vec3_t vec3_cross_normalize(vec3_t v, vec3_t u)
+inline vec3_t vec3_cross_normalize(const vec3_t v, const vec3_t u)
 {
     vec3_t result = { 0 };
 
@@ -1057,7 +1087,7 @@ inline vec3_t vec3_cross_normalize(vec3_t v, vec3_t u)
     return result;
 }
 
-inline f32 vec3_length(vec3_t v)
+inline f32 vec3_length(const vec3_t v)
 {
     f32 result = 0.0F;
 
@@ -1067,7 +1097,7 @@ inline f32 vec3_length(vec3_t v)
     return result;
 }
 
-inline f32 vec3_dist(vec3_t v, vec3_t u)
+inline f32 vec3_dist(const vec3_t v, const vec3_t u)
 {
     f32 result = 0.0F;
     
@@ -1081,7 +1111,7 @@ inline f32 vec3_dist(vec3_t v, vec3_t u)
     return result;
 }
 
-inline f32 vec3_dot(vec3_t v, vec3_t u)
+inline f32 vec3_dot(const vec3_t v, const vec3_t u)
 {
     f32 result = 0.0F;
 
@@ -1090,7 +1120,7 @@ inline f32 vec3_dot(vec3_t v, vec3_t u)
     return result;
 }
 
-inline f32 vec3_angle_between(vec3_t v, vec3_t u)
+inline f32 vec3_angle_between(const vec3_t v, const vec3_t u)
 {
     f32 result = 0.0F;
 
@@ -1107,7 +1137,7 @@ inline f32 vec3_angle_between(vec3_t v, vec3_t u)
     return result;
 }
 
-inline f32 vec3_dist_sqr(vec3_t v, vec3_t u)
+inline f32 vec3_dist_sqr(const vec3_t v, const vec3_t u)
 {
     f32 result = 0.0F;
     
@@ -1120,7 +1150,7 @@ inline f32 vec3_dist_sqr(vec3_t v, vec3_t u)
     return result;
 }
 
-inline f32 vec3_length_sqr(vec3_t v)
+inline f32 vec3_length_sqr(const vec3_t v)
 {
     f32 result = 0.0F;
 
@@ -1129,7 +1159,7 @@ inline f32 vec3_length_sqr(vec3_t v)
     return result;
 }
 
-inline f32 vec3_lp_norm(vec3_t v, f32 p)
+inline f32 vec3_lp_norm(const vec3_t v, const f32 p)
 {
     f32 result = 0.0F;
 
@@ -1144,7 +1174,7 @@ inline f32 vec3_lp_norm(vec3_t v, f32 p)
     return result;
 }
 
-inline f32 vec3_lp_norm_to_the_pth(vec3_t v, f32 p)
+inline f32 vec3_lp_norm_to_the_pth(const vec3_t v, const f32 p)
 {
     f32 result = 0.0F;
 
@@ -1159,7 +1189,7 @@ inline f32 vec3_lp_norm_to_the_pth(vec3_t v, f32 p)
     return result;
 }
 
-inline f32 vec3_max(vec3_t v)
+inline f32 vec3_max(const vec3_t v)
 {
     f32 result = 0.0F;
 
@@ -1168,7 +1198,7 @@ inline f32 vec3_max(vec3_t v)
     return result;
 }
 
-inline f32 vec3_min(vec3_t v)
+inline f32 vec3_min(const vec3_t v)
 {
     f32 result = 0.0F;
 
@@ -1177,7 +1207,7 @@ inline f32 vec3_min(vec3_t v)
     return result;
 }
 
-inline f32 vec3_avg(vec3_t v)
+inline f32 vec3_avg(const vec3_t v)
 {
     f32 result = 0.0F;
 
