@@ -182,11 +182,12 @@ typedef union quaternion_t
 
 #if !defined(DMATH_DEFINITIONS_NO_GEOMETRY)
 
+
 typedef union rectangle_t {
     f32 as_arr[ 5 ]; // x, y, w, h, r
     union {
     #if defined(DMATH_DEFINITIONS_VERBOSE)
-        vec2_t origin;
+        vec2_t ecnter;
     #endif
         struct {
             f32 x, y;
